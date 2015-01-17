@@ -1,0 +1,115 @@
+@CHARSET "UTF-8";
+
+body {
+	margin: 0px; 
+	padding: 0px; /* Need to set body margin and padding to get consistency between browsers. */
+	text-align: center; /* Hack for IE5/Win */
+}
+
+#oemathid-centerized-body{
+    max-width: 960px;
+	margin: 0px auto;
+	text-align: center;
+}
+
+#oemathid-header, #oemathid-menu, #oemathid-carousel, #oemathid-body, #oemathid-footer{
+	border: 1px dotted;
+}
+
+#oemathid-header{
+	width: 100%;
+	height: 65px;
+}
+
+#oemathid-menu{
+	padding-left: 10px;
+	width: 100%;
+}
+#oemathid-menu li {
+	width: 100px;
+}
+
+#oemathid-menu li.active {
+	background-color: rgb(160,255,120) !important;
+	color: rgb(160,255,120);
+}
+
+
+#oemathid-carousel{
+	width: 100%;
+	height: 240px;
+}
+
+
+#oemathid-body{
+	width: 100%;
+}
+
+#oemathid-body-container{
+	padding-top: 10px;
+	width: 100%;
+	min-height: 540px;
+	overflow: auto; /* this will auto expand this container when its floating children increase */
+}
+
+#oemathid-footer{
+	width: 100%;
+	height:80px;
+}
+
+
+/*************** header ***********************/
+#oemathid-logo{
+	float: left;
+	width: 200px;
+	height:60px;
+	margin-left: 10px;
+}
+
+#oemathid-header-login-form{
+	/* vertical alignment in middle */
+	float: right;
+	position: relative;
+	top: 50%;
+	transform: translateY(-50%);
+}
+#oemathid-header-login-form a {
+	font-size: 18px;
+	font-weight: 100;
+	margin-right: 20px;
+}
+.oemath-header-welcome {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 18px;
+	font-weight: 200;
+	margin-right: 8px;
+}
+.oemath-header-username {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 18px;
+	font-weight: 200;
+	margin-right: 15px;
+}
+
+
+/*************************general****************************/
+.oemath-children-left{
+    text-align: left;
+}
+
+.oemath-color {
+	color: rgb(80,224,50);
+}
+
+.oemath-btn {
+    background-color: rgb(160,255,120);
+    border-color: rgb(160,255,120);
+    color: #000066;
+    width: 100px;
+}
+
+.oemath-fullwidth{
+    width: 100%;
+}
+
+

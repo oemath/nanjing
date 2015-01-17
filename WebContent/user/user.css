@@ -1,0 +1,44 @@
+@CHARSET "UTF-8";
+
+
+.oemath-register-warning {
+	color: red;
+	font-size: 16px;
+	float: right;
+	margin-left: 10px;
+	font-weight: 200;
+}
+
+/******************************************/
+
+#oemathid-login-form {
+	position: relative;
+	margin: 0 auto;
+	margin-top: 40px;
+	margin-bottom: 40px;
+	width: 75%;
+	text-align: left;
+}
+
+#oemathid-login-form label {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 20px;
+	font-weight: 200;
+}
+
+#oemathid-login-form .checkbox label {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 16px;
+	font-weight: 200;
+}
+
+#oemathid-login-form button  {
+	margin-top: 10px;
+	float: right;
+}
+
+#oemathid-login-form a  {
+	margin-top: 5px;
+	float: right;
+}
+
