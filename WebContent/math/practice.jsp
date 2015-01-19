@@ -16,6 +16,20 @@
 		<jsp:include page="/includes/header.jsp"/>
 		<jsp:include page="/includes/menu.jsp"/>
 
+		<div id="oemathid-practice-header" class="container oemath-children-left">
+			<h1 class="oemath-color">Practice - Grade 3</h1>
+			<div class="text-center oemath-fullwidth">
+				<div class="btn-group" role="group" aria-label="...">
+				<%
+					for (int i=1; i<=24; i++) {
+						out.print("<button type='button' class='btn btn-default btn-group-review' style='background-color:rgb(255,220,220)'>"+i+"</button>");
+					}
+				%>
+				</div>
+			</div>
+			
+		</div>
+		
 	    <div id="oemathid-practice-container" class="container oemath-fullwidth oemath-children-left">
 	    </div>
 
@@ -36,6 +50,20 @@
 		});
 
 	</script>
+
+	<div class="modal fade" id="oemath-check-answer-modal" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	  <div class="modal-dialog">
+	    <div class="modal-content">
+	      <div class="modal-body">
+	        <h1>Correct</h1>
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" id="oemath-review-btn-review" class="btn btn-default" data-dismiss="modal" onclick="clickRethinkOnWrong(this)">Rethink</button>
+	        <button type="button" class="btn"  data-dismiss="modal" onclick="clickSkipOnWrong(this)">Skip</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
 	
 </body>
 </html>

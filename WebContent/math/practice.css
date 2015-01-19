@@ -1,6 +1,12 @@
+
 .oemath-font-monospace {
 	font-family: monospace;
 }
+
+#oemathid-practice-header {
+	width: 100%;
+}
+
 
 .oemath-problem-text {
 	color: rgb(80,224,50);
@@ -38,7 +44,7 @@
 
 .oemath-problem-desc {
 	text-align: justify;
-	line-height: 40px;
+	line-height: 30px;
 }
 
 .oemath-problem-image {

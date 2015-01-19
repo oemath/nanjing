@@ -59,9 +59,22 @@ var ANSWER_CORRECT = 0;
 var ANSWER_WRONG = 1;
 var ANSWER_INCOMPLETE = 2;
 
+/*********************/
+var grade = 0;
+var cid = 0;
+var count = 0;
 
+var prob_parsed;
+var prob_index = 0;
 
-function show_first_prob(grade, cid) {
+/*********************/
+
+function show_first_prob(g, c) {
+	grade = g;
+	cid = c;
+	prob_parsed = [];
+	prob_index = 0;
+	
 	ajax_get_practice_prob(grade, cid, 0, show_practice, finish_practice);
 }
 
@@ -74,6 +87,7 @@ function ajax_get_practice_prob(grade, cid, index, handler, finish) {
         dataType: "json",
         success: function (practice, textStatus, jqXHR) {
 	        if (practice.result == 'success') {
+	        	count = practice.count;
 		    	if (practice.prob != null) {
 			    	practice.grade = grade;
 			    	practice.cid = cid;
@@ -94,14 +108,42 @@ function ajax_get_practice_prob(grade, cid, index, handler, finish) {
 }
 
 
-function onclickSubmitPractice(grade, cid, index) {
-	// TODO: check answer first
-	ajax_get_practice_prob(grade, cid, index+1, show_practice, finish_practice);
+function next_or_finish_practice() {
+	if (prob_index == count-1) {
+		finish_practice(grade, cid, index);
+	}
+	else {
+		ajax_get_practice_prob(grade, cid, prob_index+1, show_practice, finish_practice);
+	}
+}
+
+function clickRethinkOnWrong() {
+}
+function clickSkipOnWrong() {
+	next_or_finish_practice();
+}
+
+
+function onclickSubmitPractice(grade, cid) {
+	var answer = check_answer();
+	if (answer == ANSWER_WRONG) { 
+		$("#oemath-check-answer-modal").modal({ backdrop: 'static', keyboard: false });
+	}
+	else if (answer == ANSWER_INCOMPLETE) {
+	}
+	else {
+		next_or_finish_practice();
+	}
 }
 
 function onclickSkipPractice(grade, cid, index) {
 	// TODO: check answer first
-	ajax_get_practice_prob(grade, cid, index+1, show_practice, finish_practice);
+	if (index == count-1) {
+		finish_practice(grade, cid, index);
+	}
+	else {
+		ajax_get_practice_prob(grade, cid, index+1, show_practice, finish_practice);
+	}
 }
 
 function finish_practice(grade, cid, index) {
@@ -110,12 +152,12 @@ function finish_practice(grade, cid, index) {
 
 
 function show_practice(practice) {
-	practice.prob = process_prob(practice.prob);
+	practice.prob = process_prob(practice.prob, practice.index);
 	show_prob('#oemathid-practice-container', practice);
 }
 
 
-function process_prob(raw_prob) {
+function process_prob(raw_prob, prob_index) {
 	var prob = makeStruct("type desc inputs ans choices hint");
 
 	var param_map = parse_param_map(raw_prob.param);
@@ -123,7 +165,7 @@ function process_prob(raw_prob) {
 	prob.type = raw_prob.type;
 	
     prob.desc = replace_parameter(raw_prob.desc, param_map);
-    var desc_inputs = replace_oemath_tags(prob.desc, 0);
+    var desc_inputs = replace_oemath_tags(prob.desc, prob_index);
     prob.desc = desc_inputs.desc;
     prob.inputs = desc_inputs.inputs;
 
@@ -131,7 +173,9 @@ function process_prob(raw_prob) {
     if (raw_prob.ans == null || raw_prob.ans == '') prob.ans = '<ans>';
     prob.ans = replace_parameter(prob.ans, param_map);
 
-    if (raw_prob.type == PROB_TYPE_CHOICE) {
+    if (raw_prob.type == PROB_TYPE_NORMAL) {
+    }
+    else if (raw_prob.type == PROB_TYPE_CHOICE) {
     	ans = prob.ans.split('$$');
         var cg = [];
         for (var i=0; i<ans.length; i++) {
@@ -159,6 +203,11 @@ function show_prob(container_id, practice) {
 	}
 	var container = $(container_id);
 	container.empty(); // clear all children
+	
+	choice_selected = -1;
+	prob_index = practice.index;
+	prob_parsed.push(practice.prob);
+	
     $(".oemath-svg-vertical input").on("input", function () {});
 
     container.append(get_prob_html(practice));
@@ -190,7 +239,7 @@ function get_prob_html(practice) {
 		prob_html += '<form class="oemath-choice-group">';
 		for (var i = 0; i < prob.choices.length; i++) {
 		    var id = 'oemathid-choice-' + i;
-		    prob_html += '<input id="'+id+'" expected="' + (i==prob.ans?1:0) + '" name="oemath-choice-item" onclick="handleClick(this)" type="radio"><label for="'+id+'" class="oemath-choice-item">' + prob.choices[i] + '</label><br>';
+		    prob_html += '<input id="'+id+'" value="'+i+'" expected="' + (i==prob.ans?1:0) + '" name="oemath-choice-item" onclick="handleClick(this)" type="radio"><label for="'+id+'" class="oemath-choice-item">' + prob.choices[i] + '</label><br>';
 		}
 		prob_html += '</form>';
 	}
@@ -209,7 +258,7 @@ function get_prob_html(practice) {
 		prob_html += '<div class="form-inline">';
 	}
 		
-	prob_html += 		'<button class="btn oemath-btn" style="margin-left:5px" onclick="onclickSubmitPractice('+practice.grade+','+practice.cid+','+practice.index+')">Submit</button>'+
+	prob_html += 		'<button class="btn oemath-btn" style="margin-left:5px" onclick="onclickSubmitPractice('+practice.grade+','+practice.cid+')">Submit</button>'+
 						'<button class="btn oemath-btn pull-right" onclick="onclickSkipPractice('+practice.grade+','+practice.cid+','+practice.index+')">Skip</button>'+
 					'</div>'+
 				'</div>';
@@ -671,5 +720,76 @@ function replace_vertical(prob, prob_index, input_numbers) {
       return desc_inputs.desc;
   });
   return { desc: prob, inputs: inputs };
+}
+
+
+
+/////////////////////////////////////////////////////////
+////// processing user input answer
+/////////////////////////////////////////////////////////
+
+// user click choice group 
+var choice_selected = -1;
+function handleClick(radioButton) {
+    choice_selected = radioButton.value;
+}
+
+
+function check_answer() {
+    var prob = prob_parsed[prob_index];
+
+    if (prob.type == PROB_TYPE_NORMAL) {
+        var answer_entered = $("#oemathid-answer-input").val().trim();
+        prob.entered = answer_entered;
+        if (answer_entered.length == 0) return ANSWER_INCOMPLETE;
+        return eval('('+answer_entered +')==('+ prob.ans+')') ? ANSWER_CORRECT : ANSWER_WRONG;
+    }
+    else if (prob.type == PROB_TYPE_CHOICE) {
+        if (choice_selected == -1) return ANSWER_INCOMPLETE;
+        prob.entered = choice_selected;
+        return choice_selected == $('#oemathid-choice-'+choice_selected).expected == 1 ? ANSWER_CORRECT : ANSWER_WRONG;
+    }
+    else if (prob.type == PROB_TYPE_MULTIPLE_ANSWER) {
+        var answer_descript = '';
+        prob.entered = [];
+        var need_more_input = false;
+        for (var i = 0; i < prob.inputs; i++) {
+            var input_number = $("#oemath-input-field-" +prob_index+ '-' +i).val().trim();
+            prob.entered.push(input_number);
+            if (input_number.length == 0) {
+            	need_more_input = true;
+            }
+            answer_descript += 'var i' + (i+1) + '=' + input_number + "; ";
+        }
+        
+        if (need_more_input) {
+        	return ANSWER_INCOMPLETE;
+        }
+        answer_descript += prob.ans;
+
+        try {
+            return eval(answer_descript) ? ANSWER_CORRECT : ANSWER_WRONG;
+        }
+        catch (e) {
+            return ANSWER_WRONG;
+        }
+    }
+    else if (prob.type == PROB_TYPE_SINGLE_ANSWER) {
+    	prob.entered = [];
+        var answer = ANSWER_CORRECT;
+        var expected_answer = eval(prob.ans); // prob.ans e.g [4,5,9,4,1,0]
+        for (var i = 0; i < prob.inputs; i++) {
+            var input_number = $("#oemath-input-field-" +prob_index+ '-' +i).val().trim();
+            prob.entered.push(input_number);
+            if (input_number.length == 0) {
+                answer = ANSWER_INCOMPLETE;
+            }
+            else if (input_number != expected_answer[i]) { // input_number length is either 0 or 1
+                answer = ANSWER_WRONG;
+            }
+        }
+        
+        return answer;
+    }
 }
 
