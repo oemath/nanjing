@@ -35,15 +35,16 @@ public class Practice {
 		
         return pidsList;
 	}
-	
-	
+
+
     @POST
     @Produces(MediaType.TEXT_PLAIN)
     public Response getPractice(
             @Context HttpServletRequest request, 
             @FormParam("grade") int grade,
             @FormParam("cid") int cid,
-            @FormParam("index") int index) {
+            @FormParam("index") int index)
+    {
         
         String retString = "";
         try {
