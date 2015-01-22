@@ -19,15 +19,22 @@ import org.codehaus.jettison.json.JSONObject;
 @Path("/practice")
 public class Practice {
 
+	@SuppressWarnings("unchecked")
 	private ArrayList<Integer> buildPidsListIfNecessary(HttpServletRequest request,
 									int grade,
 									int cid,
-									int userLevel) {
-        HttpSession session = request.getSession(true);
+									int userLevel,
+									boolean new_session)
+	{
+		ArrayList<Integer> pidsList = null;
+		
+		HttpSession session = request.getSession(true);
         String session_key = Session.SESSION_ATTRIBUTE_PRACTICE_PIDS+"-"+grade+"-"+cid;
-        
-        @SuppressWarnings("unchecked")
-        ArrayList<Integer> pidsList = (ArrayList<Integer>)session.getAttribute(session_key);
+
+        if (!new_session) {
+	        pidsList = (ArrayList<Integer>)session.getAttribute(session_key);
+		}
+		
         if (pidsList == null) {
         	pidsList = Database.getProblemIdsFromGradeCategory(grade, cid, userLevel);
         	session.setAttribute(session_key, pidsList);
@@ -43,13 +50,14 @@ public class Practice {
             @Context HttpServletRequest request, 
             @FormParam("grade") int grade,
             @FormParam("cid") int cid,
-            @FormParam("index") int index)
+            @FormParam("index") int index,
+            @FormParam("new_session") boolean new_session)
     {
         
         String retString = "";
         try {
             int userLevel = UserManagement.getCurrentUserLevel(request);
-            ArrayList<Integer> pidsList = buildPidsListIfNecessary(request, grade, cid, userLevel);
+            ArrayList<Integer> pidsList = buildPidsListIfNecessary(request, grade, cid, userLevel, new_session);
 
             JSONObject practice = new JSONObject();
             practice.put("result", "success");

@@ -98,7 +98,11 @@ body {
 }
 
 .oemath-color {
-	color: rgb(80,224,50);
+	color: rgb(160,255,120);
+}
+
+.oemath-background-color {
+	background-color: rgb(160,255,120);
 }
 
 .oemath-btn {
