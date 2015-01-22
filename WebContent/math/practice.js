@@ -73,6 +73,7 @@ var btn_group_curr = -1;
 var btn_css_inactive = '';
 var btn_css_active = '';
 function set_active(next) {
+	++next; // nth-child is 1 based.  prob index is 0-based.
 	if (btn_group_curr == -1) {
 		var first_btn = $('#oemathid-review-btns button:nth-child('+next+')');
 
@@ -95,21 +96,32 @@ function set_active(next) {
 
 function review_prob(i) {
 	prob_index = i;
-	set_active(i+1);
-	var prob_saved = prob_parsed[i].prob_saved;
+	
+	var prob = prob_parsed[i];
+	var prob_saved = prob.prob_saved;
 	$('#oemathid-practice-container').empty();
 	$('#oemathid-practice-container').append(prob_saved);
 	
 	// TODO: fill in user input
+    if (prob.type == PROB_TYPE_NORMAL) {
+        $("#oemathid-answer-input").val(prob.entered);
+    }
+    else if (prob.type == PROB_TYPE_CHOICE) {
+        if (prob.entered != -1) {
+        	$('#oemathid-choice-'+prob.entered).prop("selected", true);
+        }
+    }
+    else if (prob.type == PROB_TYPE_MULTIPLE_ANSWER || prob.type == PROB_TYPE_SINGLE_ANSWER) {
+        for (var i = 0; i < prob.inputs; i++) {
+            $("#oemath-input-field-" +prob_index+ '-' +i).val(prob.enter[i]);
+        }
+    }
 }
 
-function clickReviewBtn(i) {
+
+function clickReviewBtn(btn_index) {
 	check_answer();
-	
-	set_active(i--);
-	if (prob_parsed[i]) {
-		review_prob(i);
-	}
+	request_practice(btn_index - 1); // btn label is 1-based, while prob is 0-based.
 }
 
 
@@ -119,7 +131,7 @@ function show_first_prob(g, c) {
 	prob_index = 0;
 	prob_parsed = [];
 	
-	ajax_get_practice_prob(grade, cid, 0, false, show_practice); //false: skip set_active for first prob
+	ajax_get_practice_prob(grade, cid, 0, show_practice);
 
 	var btn_html = "<button type='button' class='btn btn-default btn-group-review' style='background-color:rgb(255, 255, 190)' onclick='clickReviewBtn(1)'>1</button>";
 	for (var i=2; i<=count; i++) {
@@ -128,13 +140,13 @@ function show_first_prob(g, c) {
 	$('#oemathid-review-btns').empty();
 	$('#oemathid-review-btns').append(btn_html);
 
-	set_active(1);
+	set_active(0);
 	
 	return count;
 }
 
 
-function ajax_get_practice_prob(grade, cid, index, active_btn, handler) {
+function ajax_get_practice_prob(grade, cid, index, handler) {
     $.ajax({
         type: "post",
         url: "/api/practice",
@@ -149,7 +161,7 @@ function ajax_get_practice_prob(grade, cid, index, active_btn, handler) {
 			    	practice.cid = cid;
 			    	practice.index = index;
 			    	
-			    	handler(practice, active_btn);
+			    	handler(practice);
 		    	}
 		    }
 	        else {
@@ -163,60 +175,82 @@ function ajax_get_practice_prob(grade, cid, index, active_btn, handler) {
 }
 
 
-function next_practice() {
-	if (prob_index < count-1) {
-		ajax_get_practice_prob(grade, cid, prob_index+1, true, show_practice);
+function request_practice(index) {
+	if (index < count) {
+		set_active(index);
+		if (index < prob_parsed.length) {
+			review_prob(index);
+		}
+		else {
+			ajax_get_practice_prob(grade, cid, index, show_practice);
+		}
 	}
 }
 
 
-function onclickSubmitPractice(grade, cid) {
+var BTN_CORRECT =  "rgb(192, 255, 190)";
+var BTN_WRONG =    "rgb(255, 192, 190)";
+var BTN_SKIPPED =  "rgb(255, 255, 190)";
+function set_review_btn_color(index, color) { // 0-based
+	var curr_btn = $('#oemathid-review-btns button:nth-child('+(index+1)+')'); // nth-child is 1-based
+	curr_btn.css("background-color", color);
+	return curr_btn;
+}
+
+
+function onclickSubmitPractice(grade, cid, index) {
 	var answer = check_answer();
 	if (answer == ANSWER_WRONG) { 
-//		$('#owmthid-modal-practice-answer').text('Wrong');
-//		$('#oemath-check-answer-modal').modal('show');
-		var curr_btn = $('#oemathid-review-btns button:nth-child('+(prob_index+1)+')');
-		curr_btn.css("background-color", "rgb(255, 192, 190)");
-		next_practice();
-//		$("#oemath-check-answer-modal").modal({ backdrop: 'static', keyboard: false });
+		set_review_btn_color(index, BTN_WRONG);
+		request_practice(index + 1);
 	}
 	else if (answer == ANSWER_INCOMPLETE) {
 		$('#owmthid-modal-practice-answer').text('Please enter your answer');
 		$('#oemath-check-answer-modal').modal('show');
 	}
 	else {
-//		$('#owmthid-modal-practice-answer').text('Correct');
-//		$('#oemath-check-answer-modal').modal('show');
-		var curr_btn = $('#oemathid-review-btns button:nth-child('+(prob_index+1)+')');
-		curr_btn.css("background-color", "rgb(192, 255, 190)");
-		next_practice();
+		set_review_btn_color(index, BTN_CORRECT);
+		request_practice(index + 1);
 	}
 }
+
 
 function onclickSkipPractice(grade, cid, index) {
+	var next_index = index + 1;
+
+	var prob = prob_parsed[index];
+	var prev_entered = prob.entered;
 	check_answer();
+
+	var enter_changed = false;
+    if (prob.type == PROB_TYPE_NORMAL || prob.type == PROB_TYPE_CHOICE) {
+    	enter_changed = (prob.entered != prev_entered);
+    }
+    else if (prob.type == PROB_TYPE_MULTIPLE_ANSWER || prob.type == PROB_TYPE_SINGLE_ANSWER) {
+    	if (prev_entered == null) {
+    		enter_changed = true;
+    	}
+    	else {
+	        for (var i = 0; i < prob.inputs; i++) {
+	        	if (prev_entered[i] != prob.entered[i]) {
+	        		enter_changed = true;
+	        		break;
+	        	}
+	        }
+        }
+    }
+
+    if (enter_changed) {
+		set_review_btn_color(index, BTN_SKIPPED);
+    }
 	
-	if (index < count-1) {
-		if (index < prob_parsed.length - 1) {
-			review_prob(index+1);
-		}
-		else {
-			var curr_btn = $('#oemathid-review-btns button:nth-child('+(prob_index+1)+')');
-			curr_btn.css("background-color", "rgb(255, 255, 190)");
-			ajax_get_practice_prob(grade, cid, index+1, true, show_practice);
-		}
-	}
+	request_practice(next_index);
 }
 
 
-function show_practice(practice, active_btn) {
+function show_practice(practice) {
 	prob_index = practice.index;
-	var curr_btn = $('#oemathid-review-btns button:nth-child('+(prob_index+1)+')');
-	curr_btn.prop("disabled", false);
-	if (active_btn) {
-		set_active(prob_index+1);
-		curr_btn.css("background-color", "rgb(255, 255, 190)");
-	}
+	set_review_btn_color(practice.index, BTN_SKIPPED).prop("disabled", false);
 	
 	practice.prob = process_prob(practice.prob, practice.index);
 	show_prob('#oemathid-practice-container', practice);
@@ -311,7 +345,7 @@ function get_prob_html(practice, is_review) {
 		prob_html += '<form class="oemath-choice-group">';
 		for (var i = 0; i < prob.choices.length; i++) {
 		    var id = 'oemathid-choice-' + i;
-		    prob_html += '<input id="'+id+'" value="'+i+'" expected="' + (i==prob.ans?1:0) + '" name="oemath-choice-item" onclick="handleClick(this)" type="radio"><label for="'+id+'" class="oemath-choice-item">' + prob.choices[i] + '</label><br>';
+		    prob_html += '<input id="'+id+'" value="'+i+'" expected="' + (i==prob.ans?1:0) + '" name="oemath-choice-item" onclick="handleClickChoiceGroup(this)" type="radio"><label for="'+id+'" class="oemath-choice-item">' + prob.choices[i] + '</label><br>';
 		}
 		prob_html += '</form>';
 	}
@@ -330,9 +364,10 @@ function get_prob_html(practice, is_review) {
 		prob_html += '<div class="form-inline">';
 	}
 		
-	prob_html += 		'<button class="btn oemath-btn" style="margin-left:5px" onclick="onclickSubmitPractice('+practice.grade+','+practice.cid+')">Submit</button>'+
-						(is_review ? ('<button class="btn oemath-btn" style="margin-left:5px; width:120px;" onclick="onclickShowAnswerPractice('+practice.grade+','+practice.cid+')">Show Answer</button>') : '') +
-						'<button class="btn oemath-btn pull-right" onclick="onclickSkipPractice('+practice.grade+','+practice.cid+','+practice.index+')">Skip</button>'+
+	var param = ''+practice.grade+','+practice.cid+','+practice.index;
+	prob_html += 		'<button class="btn oemath-btn" style="margin-left:5px" onclick="onclickSubmitPractice('+param+')">Submit</button>'+
+						(is_review ? ('<button class="btn oemath-btn" style="margin-left:5px; width:120px;" onclick="onclickShowAnswerPractice('+param+')">Show Answer</button>') : '') +
+						'<button class="btn oemath-btn pull-right" onclick="onclickSkipPractice('+param+')">Skip</button>'+
 					'</div>'+
 				'</div>';
 
@@ -794,7 +829,7 @@ function replace_vertical(prob, prob_index, input_numbers) {
 
 // user click choice group 
 var choice_selected = -1;
-function handleClick(radioButton) {
+function handleClickChoiceGroup(radioButton) {
     choice_selected = radioButton.value;
 }
 
