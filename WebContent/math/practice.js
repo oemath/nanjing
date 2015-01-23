@@ -40,6 +40,13 @@ function C(n, m) {
     return P(n, m) / F(m);
 }
 
+function num() {
+	var n = 0;
+	for (var i = 0; i < arguments.length; i++) {
+		n = n*10 + arguments[i];
+	}
+	return n;
+}
 
 //constants
 var	DEFAULT_INPUT_RADIUS = 25;
@@ -434,7 +441,7 @@ function get_prob_html(practice) {
 					'<div class="form-inline">';
 	
 	if (prob.type == PROB_TYPE_NORMAL) {
-		prob_html += 	'<h1 class="oemath-answer-text">Answer('+prob.ans+')</h1>'+
+		prob_html += 	'<h1 class="oemath-answer-text">Answer('+eval_wrapper(prob.ans)+')</h1>'+
 						'<div class="form-inline">'+
 						'<input id="oemathid-answer-input" type="text" class="form-control oemath-answer-input"></input>';
 	}

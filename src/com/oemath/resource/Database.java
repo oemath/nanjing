@@ -318,5 +318,49 @@ public class Database {
     }
     
     
+    public static boolean saveProb(int grade, int type, int pid, String desc, String param, String ans, String hint, int userLevel)
+    {
+        try {
+            DBConnect dbConn = new DBConnect();
+            String tbl = tblPrefix[userLevel]+grade;
+            
+            if (pid == 0) { // new prob
+	            PreparedStatement pstmt = dbConn.prepareStatement("insert into "+tbl+" values(?,?,?,?,?,?,?,?,?,?)");
+	            pstmt.setInt(1, pid);
+	            pstmt.setInt(2, cid);
+	
+	            pstmt.setString(3, user.name);
+	            pstmt.setString(4, user.email);
+	            pstmt.setString(5, user.salt);
+	            pstmt.setString(6, user.password);
+	            pstmt.setInt(7, 0);
+	            pstmt.setNull(8, Types.DATE);
+	            pstmt.setNull(9, Types.VARCHAR);
+	            pstmt.setNull(10, Types.DATE);
+	            Date currentDate = new Date(System.currentTimeMillis()); 
+	            pstmt.setDate(11, currentDate);
+	            pstmt.setDate(12, currentDate);
+	            pstmt.executeUpdate();
+	            return true;
+            }
+            else { // update
+                String query = "update "+tbl+" set "+
+                		"cid=" + cid +
+                		"type=" + type +
+                		"problem=" + desc +
+                		"param=" + param +
+                		"answer=" + ans +
+                		"hint=" + hint +
+                		"where pid=" + pid;
+            	
+            }
+        }
+        catch (Exception ex) {
+            return false;
+        }
+        
+    }
+    
+    
 
 }

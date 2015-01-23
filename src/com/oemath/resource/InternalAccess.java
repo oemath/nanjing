@@ -28,9 +28,9 @@ public class InternalAccess {
             @QueryParam("grade") int grade,
             @QueryParam("pid") int pid,
             @QueryParam("action") String action,
-            @QueryParam("level") int userLevel) {
+            @QueryParam("level") int userLevel)
+    {
 
-        int retStatus = 500;
         String retString = "Error";
         
         try {
@@ -54,7 +54,6 @@ public class InternalAccess {
 	                }
 	                problem.put("hint", hintList);
 	            }
-	            retStatus = 200;
 	            retString = problem.toString();
             }
         }
@@ -63,8 +62,36 @@ public class InternalAccess {
         }
 
         return Response
-                .status(retStatus)
+                .status(200)
                 .entity(retString)
+                .build();
+    }
+
+    @GET
+    @Path("/save")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response saveProblem(
+            @Context HttpServletRequest request, 
+            @QueryParam("grade") int grade,
+            @QueryParam("pid") int pid,
+            @QueryParam("type") int type,
+            @QueryParam("prob") String prob,
+            @QueryParam("param") String param,
+            @QueryParam("ans") String ans,
+            @QueryParam("hint") String hint)
+    {
+    	boolean success = true;
+    	
+    	try {
+    		success = Database.saveProb(grade, type, pid, prob, param, ans, hint, 2); // 2: paid user
+    	}
+    	catch (Exception e) {
+    		success = false;
+    	}
+    	
+        return Response
+                .status(200)
+                .entity("")
                 .build();
     }
 

@@ -4,15 +4,15 @@
     <title>OEMath - Sharpen your brain</title>
     <meta name="keywords" content="" />
     <meta name="description" content="" />
-    <link href="css/default.css" rel="stylesheet" type="text/css" media="screen" />
-    <link href="css/oemath.css" rel="stylesheet" type="text/css" media="screen" />
+    <link href="css1/oemath.css" rel="stylesheet" type="text/css" media="screen" />
     <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
     <link href="css/jquery-ui.min.css" rel="stylesheet" type="text/css" />
-    <link href="css/oemath-problem.css" rel="stylesheet" type="text/css" />
+    <link href="math/practice.css" rel="stylesheet" type="text/css" />
     
     <style>
         body{
             margin: 0 auto;
+            text-align: left;
         }
         
         .oemath-fullwidth{
@@ -77,8 +77,12 @@
 	        <input type="number" class="form-control" id="prob-pid" style="width:100px"></input>
 	    </div>
 	    <div style="float:left;margin-left:20px">
+	        <label>Category:</label>
+	        <input type="number" class="form-control" id="prob-cid" value="" style="width:100px"></input>
+	    </div>
+	    <div style="float:left;margin-left:20px">
 	        <label>Type:</label>
-	        <input type="number" class="form-control" id="prob-type" style="width:100px"></input>
+	        <input type="text" class="form-control" id="prob-type" value="" style="width:200px"></input>
 	    </div>
 	    <div style="float:right;">
 	        <label>Grade:</label>
@@ -110,7 +114,7 @@
 	    </div>
 	
 		<p id="prob-info">&nbsp;</p>
-	    <button class="btn oemath-btn-color" style="margin-top:20px; margin-left: 10px; width:100px; float:right">Save</button>
+	    <button class="btn oemath-btn-color" style="margin-top:20px; margin-left: 10px; width:100px; float:right" onclick="onclickSave()">Save</button>
 	    <button class="btn oemath-btn-color" id="oemathid-btn-get" style="margin-top:20px; width:100px; float:right" onclick="onclickGet()">Get</button>
 	    <button class="btn oemath-btn-color" style="margin-top:20px; width:50px;" onclick="onclickPrev()">&lt;&lt;</button>
 	    <button class="btn oemath-btn-color" style="margin-top:20px; width:50px;" onclick="onclickNext()">&gt;&gt;</button>
@@ -119,7 +123,7 @@
 
     <div class="update-right">
 	    <button class="btn oemath-btn-color" id="oemathid-btn-refresh" onclick="onclickRefresh()" style="margin0; width:120px;">Refresh</button>
-	    <div id="preview-container" style="width:100%">
+	    <div id="preview-container" class="container oemath-fullwidth oemath-children-left">
 	    </div>
     </div>
 
@@ -127,103 +131,15 @@
 
     <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="math/practice.js"></script>
 
-    <script type="text/javascript" src="js/oemath.js"></script>
-    <!--script type="text/javascript" src="math/practice/practice.js"></script-->
 
 	<script>
 
-		////////////////////////////////////////////////////////////
-		//////////////// start /////////////////////////////////////
-		////////////////////////////////////////////////////////////
-
 		var DEFAULT_PID = 79;
 		var DEFAULT_GRADE = 3;
-		
-/*	    function replaceParameter(value) {
-	        for (var k in paramMap) {
-	            value = value.replace(new RegEx(key, 'g'), paramMap[key]);
-	        }
-	        return value;
-	    }*/
-	    function replace_parameter(param, val_map) {
-		    $.each(val_map, function(k, v) {
-		        param = param.replace(new RegExp(k, "g"), v);
-		    });
-		    return param;
-	    }
 
-	    function eval_rand_param(param, pick_index) {
-	        while (true) {
-	            var start = param.indexOf('{{');
-	            if (start < 0) break;
-	            
-	            var end = param.indexOf('}}', start+2);
-	            var rand_result = generate_val(param.substr(start+2, end-start-2), pick_index);
-	            pick_index = rand_result[0];
-	            param = param.substr(0, start) + rand_result[1] + param.substr(end+2);
-	        }
-	        
-	        return {pick_index: pick_index, param_evaled: param};
-    	}
-
-	    function generate_val(param, pick_index) {
-	        if (param.indexOf('-') > 0) {
-	            // range
-	            var range = param.trim().split('-');
-	            var first = range[0] >> 0;
-	            var last = range[1] >> 0;
-	            var len = last - first + 1;
-	            return [pick_index, first + rand(len) >> 0];
-	        }
-	        else {
-	            // enum
-	            var params = param.trim().split(',');
-	            if (pick_index == -1) {
-	                pick_index = rand(params.length) >> 0;
-	            }
-	            return [pick_index, params[pick_index]];
-	        } 
-	    }
-
-
-	    // use wrapper to avoid being modified by eval()
-	    function eval_wrapper(exp) {
-		    return eval(exp);
-		}
-
-	    function parse_param_map(parameter) {
-	        var params = parameter.trim().split('$$');
-	        var pick_index = -1;
-	        var val_map = {};
-	        var i = 111;
-	        
-	        for (var i=0; i<params.length; i++) {
-	            var eql = params[i].indexOf('=');
-	            if (eql < 0) continue;
-	
-	            var val_name = params[i].substr(0, eql).trim();
-	            var val_value = params[i].substr(eql+1).trim();
-	
-	            var index_val = eval_rand_param(val_value, pick_index);
-	            pick_index= index_val.pick_index;
-	            var param_val = index_val.param_evaled;
-	
-	            param_val = replace_parameter(param_val, val_map).replace(/[\r\n]/g, '');
-	            try {
-	            	param_val = eval_wrapper(param_val);
-	            }
-	            catch (e) {
-	            }
-	            val_map["<"+val_name+">"] = param_val;
-	        }
-	
-	        return val_map;
-	    }
-
-		////////////////////////////////////////////////////////////
-		//////////////// end// /////////////////////////////////////
-		////////////////////////////////////////////////////////////
+		var type_str = ["0 - Normal", "1 - Choice", "2 - Multi Answer", "3 - Single Answer" ]; 
 		
 		function retrieve_and_show(action) {
 			var pid = $('#prob-pid').val().trim();
@@ -234,13 +150,13 @@
 				$('#prob-grade').val(grade);
 			}
 			
-			var url = "/api/internal?grade="+grade+"&pid="+pid+"&action="+action+"&level=2";
+			var url = "/api/internal";
 			
 		    $.ajax({
 		        type: "get",
 		        url: url,
 		        dataType: "json",
-		        data: {},
+		        data: { grade: grade, pid: pid, action: action, level: 2 },
 		        success: function (data, textStatus, jqXHR) {
 		            handleGet(data);
 		            $("#prob-info").text("");
@@ -264,6 +180,36 @@
 			retrieve_and_show('next');
 		}
 
+		function onclickSave() {
+			var prob = gather_prob_data();
+
+			var url = "/api/internal/save";
+			
+		    $.ajax({
+		        type: "get",
+		        url: url,
+		        dataType: "json",
+		        data: { 
+			        grade: prob.grade, 
+			        pid: prob.pid, 
+			        type: prob.type,
+			        param: prob.param,
+			        prob: prob.desc,
+			        ans: prob.ans,
+			        hint: prob.hint },
+		        success: function (data, textStatus, jqXHR) {
+		            handleGet(data);
+		            $("#prob-info").text("");
+		        },
+		        failure: function (jqXHR, textStatus, errorThrown) {
+		            $("#prob-info").text("failure:" + errorThrown);
+		        },
+		        error: function (jqXHR, textStatus, errorThrown) {
+		            $("#prob-info").text("error:" + url);
+		        },
+		    });
+
+		}
 
 		function refresh_input_to_preview() {
 			var raw_prob = gather_prob_data();
@@ -283,7 +229,7 @@
 			$(".oemath-input-catch").on("input", function () {});
 
 			$('#prob-pid').val(data.pid);
-			$('#prob-type').val(data.type);
+			$('#prob-type').val(type_str[data.type]);
 			$('#prob-desc').val(data.problem);
 			$('#prob-param').val(data.param);
 			$('#prob-ans').val(data.answer);
@@ -307,63 +253,25 @@
 		}
 
 		function gather_prob_data() {
-			var prob = makeStruct("type desc param ans hint");
+			var prob = makeStruct("type desc param ans hint, grade, pid");
 
-			prob.type = $('#prob-type').val();
+			prob.type = $('#prob-type').val().charAt(0);
+			if (!prob.type) {
+				prob.type = PROB_TYPE_NORMAL;
+			}
 			prob.param = $('#prob-param').val();
 		    prob.desc = $('#prob-desc').val();
 		    prob.ans = $('#prob-ans').val();
 		    prob.hint = $('#prob-hint').val();
+		    prob.grade = $('#prob-grade').val();
+		    prob.pid = $('#prob-pid').val();
+		    if (!prob.pid) prob.pid = 0;
 
 		    return prob;
 		}
 
 
-
-		/////////////////////////////////////////////////
-		//////////// reuse starts ///////////////////////
-		/////////////////////////////////////////////////
-		
-		function process_raw_prob(raw_prob) {
-			var prob = makeStruct("type desc inputs ans choices hint");
-
-			var param_map = parse_param_map(raw_prob.param);
-
-			prob.type = raw_prob.type;
-			
-		    prob.desc = replace_parameter(raw_prob.desc, param_map);
-		    var desc_inputs = replace_oemath_tags(prob.desc, 0);
-		    prob.desc = desc_inputs.desc;
-		    prob.inputs = desc_inputs.inputs;
-
-		    prob.ans = raw_prob.ans;
-		    if (raw_prob.ans == null || raw_prob.ans == '') prob.ans = '<ans>';
-	        prob.ans = replace_parameter(prob.ans, param_map);
-
-	        if (raw_prob.type == PROB_TYPE_CHOICE) {
-	        	ans = prob.ans.split('$$');
-		        var cg = [];
-		        for (var i=0; i<ans.length; i++) {
-			        cg.push(i);
-			    }
-			    shuffle(cg);
-			    prob.choices = [];
-		        for (var i=0; i<ans.length; i++) {
-			        if (ans[i] == 0) {
-				        prob.ans = i;
-				    }
-				    prob.choices.push(ans[i]);
-			    }
-		    }
-
-		    prob.hint = raw_prob.hint;
-
-		    return prob;
-		}
-
-
-
-		function refresh_prob(container_id, prob) {
+		function refresh_prob(container_id, practice) {
 			if (container_id.indexOf('#') == -1) {
 				container_id = '#' + container_id;
 			}
@@ -371,29 +279,25 @@
 			container.empty(); // clear all children
 	        $(".oemath-svg-vertical input").on("input", function () {});
 
-		    container.append(get_prob_html(prob));
-		    
-	        //if (prob.type == PROB_TYPE_MULTIPLE_ANSWER)
-		        {
-		        $(".oemath-svg-vertical input").on("input", function () {
-		            var v = $(this).val();
-		            var ch = v.charAt(v.length-1); // limit one digit in the input
-		            var ph = $(this).attr('placeholder');
-		            if ('A' <= ph && ph <= 'Z') {
-		                $('.oemath-svg-vertical input[placeholder="'+ph+'"]').val(ch);
-		            }
-		            else {
-		                $(this).val(ch);
-		            }
-		        });
-		    }
+		    container.append(get_prob_html(practice));
+
+		    sync_input(practice.prob);
 		}
 
-		/////////////////////////////////////////////////
-		//////////// reuse ends /////////////////////////
-		/////////////////////////////////////////////////
 
-
+		$(function() {
+	        $("#prob-type").on("keydown", function (e) {
+	        	var ch = e.keyCode || e.which;
+	        	if (ch) {
+		        	ch -= 48;
+		            if (0 <= ch && ch <= 3) {
+			            $(this).val(type_str[ch]);
+		            }
+	        	}
+	        	return false; // do NOT pass down the event
+	        });
+		});
+		
 	</script>
 </body>
 </html>
