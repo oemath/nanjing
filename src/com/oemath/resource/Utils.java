@@ -211,4 +211,11 @@ public class Utils {
         return ret;
     }
     
+
+
+
+    public static String escapeSql(String sql)
+    {
+    	return sql.replace("'", "''");
+    }
 }

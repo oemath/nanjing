@@ -85,18 +85,34 @@ public class InternalAccess {
             @QueryParam("ans") String ans,
             @QueryParam("hint") String hint)
     {
-    	boolean success = true;
-    	
     	try {
-    		success = Database.saveProb(grade, pid, type, cid, level, prob, param, ans, hint, 2); // 2: paid user
+    		pid = Database.saveProb(grade, pid, type, cid, level, prob, param, ans, hint, 2); // 2: paid user
     	}
     	catch (Exception e) {
-    		success = false;
     	}
     	
+        JSONObject ret = new JSONObject();
+        try {
+        	if (pid > 0) {
+        		ret.put("result", "success");
+        		ret.put("pid", pid);
+        	}
+        	else {
+        		ret.put("result", "failure");
+        		if (pid == -1) {
+            		ret.put("error", "SQL statement returns nothing");
+        		}
+        		else {
+            		ret.put("error", "Insert failure");
+        		}
+        	}
+        }
+        catch (JSONException je) {
+        }
+
         return Response
                 .status(200)
-                .entity("")
+                .entity(ret.toString())
                 .build();
     }
 

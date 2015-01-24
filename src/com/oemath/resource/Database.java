@@ -188,7 +188,7 @@ public class Database {
     	}
     	
         DBConnect dbConn = new DBConnect();
-        ResultSet rs = dbConn.execute("select pid, type, problem, param, answer, hint from "+tblPrefix[userLevel]+ grade +" where pid=" + pid);
+        ResultSet rs = dbConn.execute("select pid, problem, param, answer, hint, type from "+tblPrefix[userLevel]+ grade +" where pid=" + pid);
         
         if (rs == null) {
             return null;
@@ -263,7 +263,7 @@ public class Database {
     public static Prob getNextProbFromGradePid(int grade, int pid, String action, int userLevel) {
         DBConnect dbConn = new DBConnect();
         
-        String queryStr = "select pid, cid, level, type, problem, param, answer, hint from "+tblPrefix[userLevel]+ grade +" where pid";
+        String queryStr = "select pid, problem, param, answer, hint, cid, type, level from "+tblPrefix[userLevel]+ grade +" where pid";
         if ("prev".equals(action)) {
         	queryStr += "<" + pid  + " order by pid desc limit 1";
         }
@@ -320,7 +320,7 @@ public class Database {
     }
     
     
-    public static boolean saveProb(
+    public static int saveProb(
     		int grade, 
     		int pid,
     		int type, 
@@ -338,46 +338,48 @@ public class Database {
             
             if (pid == 0) { // new prob
 	            PreparedStatement pstmt = dbConn.prepareStatement("insert into "+tbl+" values(?,?,?,?,?,?,?,?,?)");
-	            ResultSet rs = pstmt.getGeneratedKeys();
-	            if (rs != null) {
-	            	while (rs.next()) {
-	            		pid = rs.getInt("pid");
-	            	}
-	            }
 	            pstmt.setInt(1, pid);
-	            pstmt.setInt(2, cid);
-	            pstmt.setInt(3, level);
 	
-	            pstmt.setString(4, desc);
-	            pstmt.setString(5, param);
-	            pstmt.setInt(6, type);
-	            pstmt.setString(7, ans);
-	            pstmt.setString(8, hint);
+	            pstmt.setString(2, desc);
+	            pstmt.setString(3, param);
+	            pstmt.setString(4, ans);
+	            pstmt.setString(5, hint);
+
+	            pstmt.setInt(6, cid);
+	            pstmt.setInt(7, type);
+	            pstmt.setInt(8, level);
+	            
 	            Date currentDate = new Date(System.currentTimeMillis()); 
 	            pstmt.setDate(9, currentDate);
 	            pstmt.executeUpdate();
-	            return true;
+
+	            ResultSet rs = pstmt.getGeneratedKeys();
+	            if (rs != null) {
+	            	while (rs.next()) {
+	            		pid = rs.getInt(1);
+	            		break;
+	            	}
+	            }
+	            return pid;
             }
             else { // update
                 String query = "update "+tbl+" set "+
                 		" pid="+pid+
-                		" cid=" + cid +
-                		" leve=" + level +
-                		" problem=" + desc +
-                		" param=" + param +
-                		" type=" + type +
-                		" answer=" + ans +
-                		" hint=" + hint +
+                		",cid=" + cid +
+                		",level=" + level +
+                		",problem='" + Utils.escapeSql(desc) +"'"+
+                		",param='" + Utils.escapeSql(param) +"'"+
+                		",type=" + type +
+                		",answer='" + Utils.escapeSql(ans) +"'"+
+                		",hint='" + Utils.escapeSql(hint) +"'"+
                 		" where pid=" + pid;
-                dbConn.executeUpdate(query);
-                return true;
+                int rows = dbConn.executeUpdate(query); // either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements that return nothing
+                return (rows == 1) ? pid : -1;
             }
         }
         catch (Exception ex) {
-            return false;
+            return 0;
         }
     }
-    
-    
 
 }

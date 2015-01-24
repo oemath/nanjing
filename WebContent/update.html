@@ -224,7 +224,7 @@
 		        data: { 
 			        grade: prob.grade, 
 			        pid: prob.pid, 
-			        cid: prob.dic,
+			        cid: prob.cid,
 			        level: prob.level,
 			        type: prob.type,
 			        param: prob.param,
@@ -233,6 +233,8 @@
 			        hint: prob.hint },
 		        success: function (data, textStatus, jqXHR) {
 		            if (data.result == "success") {
+			            prob.pid = data.pid;
+			            $('#prob-pid').val(prob.pid);
 		            }
 		            else {
 		            	$("#prob-info").text("error:"+data.error);
@@ -292,7 +294,7 @@
 		}
 
 		function gather_prob_data() {
-			var prob = makeStruct("type desc param ans hint, grade, pid, cid, level");
+			var prob = {};
 
 			prob.type = $('#prob-type').val().charAt(0);
 			if (!prob.type) {

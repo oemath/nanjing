@@ -39,17 +39,17 @@ public class DBConnect {
         return rs;
     }
     
-    public ResultSet executeUpdate(String query) {
-        ResultSet rs = null;
-        
+    public int executeUpdate(String query) {
+    	int rows = 0;
+    	
         try {
-            stat.executeUpdate(query);
+            rows = stat.executeUpdate(query);
         }
         catch (Exception ex) {
             errMessage = ex.getMessage();
         }
         
-        return rs;
+        return rows;
     }
     
     public PreparedStatement prepareStatement(String query) {
