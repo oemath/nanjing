@@ -6,6 +6,10 @@ public class Prob {
 
     public int pid;
     
+    public int cid;
+    
+    public int level;
+    
     public String problem;
     
     public String param;

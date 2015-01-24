@@ -54,7 +54,7 @@ public class DBConnect {
     
     public PreparedStatement prepareStatement(String query) {
         try {
-            return conn.prepareStatement(query);
+            return conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         }
         catch (SQLException se) {
             return null;

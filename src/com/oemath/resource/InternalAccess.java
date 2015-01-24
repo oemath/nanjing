@@ -39,6 +39,8 @@ public class InternalAccess {
             if (prob != null) {
 	            problem.put("count", 1);
 	            problem.put("pid", prob.pid);
+	            problem.put("cid", prob.cid);
+	            problem.put("level", prob.level);
 	            problem.put("problem", prob.problem);
 	            problem.put("param", prob.param);
 	            problem.put("type", prob.type);
@@ -67,6 +69,7 @@ public class InternalAccess {
                 .build();
     }
 
+
     @GET
     @Path("/save")
     @Produces(MediaType.TEXT_PLAIN)
@@ -75,6 +78,8 @@ public class InternalAccess {
             @QueryParam("grade") int grade,
             @QueryParam("pid") int pid,
             @QueryParam("type") int type,
+            @QueryParam("cid") int cid,
+            @QueryParam("level") int level,
             @QueryParam("prob") String prob,
             @QueryParam("param") String param,
             @QueryParam("ans") String ans,
@@ -83,7 +88,7 @@ public class InternalAccess {
     	boolean success = true;
     	
     	try {
-    		success = Database.saveProb(grade, type, pid, prob, param, ans, hint, 2); // 2: paid user
+    		success = Database.saveProb(grade, pid, type, cid, level, prob, param, ans, hint, 2); // 2: paid user
     	}
     	catch (Exception e) {
     		success = false;
@@ -94,5 +99,6 @@ public class InternalAccess {
                 .entity("")
                 .build();
     }
+
 
 }

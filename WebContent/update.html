@@ -66,27 +66,56 @@
         }
 
 
+		.button-left {
+			float: left;
+			margin-right: 20px;
+		}
+
+		.button-right {
+			float: right;
+			margin-left: 20px;
+		}
+		
+		.width-100 {
+			width: 100px;
+		}
+
+		.width-200 {
+			width: 200px;
+		}
+
+		.width-600 {
+			width: 600px;
+		}
+
     </style>
     
 </head>
 
 <body>
+
     <div class="update-left">
-	    <div style="float:left">
+	    <div class="button-left">
 	        <label>Pid:</label>
-	        <input type="number" class="form-control" id="prob-pid" style="width:100px"></input>
+	        <input type="number" class="form-control width-100" id="prob-pid"></input>
 	    </div>
-	    <div style="float:left;margin-left:20px">
-	        <label>Category:</label>
-	        <input type="number" class="form-control" id="prob-cid" value="" style="width:100px"></input>
-	    </div>
-	    <div style="float:left;margin-left:20px">
+	    <div class="button-left">
 	        <label>Type:</label>
-	        <input type="text" class="form-control" id="prob-type" value="" style="width:200px"></input>
+	        <input type="text" class="form-control width-200" id="prob-type"></input>
 	    </div>
-	    <div style="float:right;">
+	    <div class="button-left">
+	        <label>Level:</label>
+	        <input type="number" class="form-control width-100" id="prob-level"></input>
+	    </div>
+	    
+	    <div class="button-right">
 	        <label>Grade:</label>
-	        <input type="number" class="form-control" id="prob-grade" style="width:100px"></input>
+	        <input type="number" class="form-control width-100" id="prob-grade"></input>
+	    </div>
+	    <div class="button-right">
+	        <label>Category:</label>
+			<select id="prob-cid" class="form-control width-600">
+			</select>
 	    </div>
 	    <div style="clear:both"></div>
 	    
@@ -128,6 +157,7 @@
     </div>
 
     <div style="clear:both"></div>
+
 
     <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
@@ -180,26 +210,33 @@
 			retrieve_and_show('next');
 		}
 
+		function onclickNew() {
+			$('#prob-pid').val('')
+		}
+
 		function onclickSave() {
 			var prob = gather_prob_data();
 
-			var url = "/api/internal/save";
-			
 		    $.ajax({
 		        type: "get",
-		        url: url,
+		        url: "/api/internal/save",
 		        dataType: "json",
 		        data: { 
 			        grade: prob.grade, 
 			        pid: prob.pid, 
+			        cid: prob.dic,
+			        level: prob.level,
 			        type: prob.type,
 			        param: prob.param,
 			        prob: prob.desc,
 			        ans: prob.ans,
 			        hint: prob.hint },
 		        success: function (data, textStatus, jqXHR) {
-		            handleGet(data);
-		            $("#prob-info").text("");
+		            if (data.result == "success") {
+		            }
+		            else {
+		            	$("#prob-info").text("error:"+data.error);
+		            }
 		        },
 		        failure: function (jqXHR, textStatus, errorThrown) {
 		            $("#prob-info").text("failure:" + errorThrown);
@@ -214,8 +251,8 @@
 		function refresh_input_to_preview() {
 			var raw_prob = gather_prob_data();
 			var practice = {};
-			practice.grade = 1;
-			practice.cid = 1;
+			practice.grade = raw_prob.grade;
+			practice.cid = raw_prob.cid;
 			practice.index = 0;
 			practice.prob = process_prob(raw_prob);
 			refresh_prob('#preview-container', practice);
@@ -229,6 +266,8 @@
 			$(".oemath-input-catch").on("input", function () {});
 
 			$('#prob-pid').val(data.pid);
+			$('#prob-cid').val(data.cid);
+			$('#prob-level').val(data.level);
 			$('#prob-type').val(type_str[data.type]);
 			$('#prob-desc').val(data.problem);
 			$('#prob-param').val(data.param);
@@ -253,7 +292,7 @@
 		}
 
 		function gather_prob_data() {
-			var prob = makeStruct("type desc param ans hint, grade, pid");
+			var prob = makeStruct("type desc param ans hint, grade, pid, cid, level");
 
 			prob.type = $('#prob-type').val().charAt(0);
 			if (!prob.type) {
@@ -264,8 +303,9 @@
 		    prob.ans = $('#prob-ans').val();
 		    prob.hint = $('#prob-hint').val();
 		    prob.grade = $('#prob-grade').val();
-		    prob.pid = $('#prob-pid').val();
-		    if (!prob.pid) prob.pid = 0;
+		    prob.pid = $('#prob-pid').val(); if (!prob.pid) { prob.pid = 0; $('#prob-pid').val(prob.pid); }
+		    prob.cid = $('#prob-cid').val();
+		    prob.level = $('#prob-level').val(); if (!prob.level) { prob.level = 1; $('#prob-level').val(prob.level) }
 
 		    return prob;
 		}
@@ -275,6 +315,7 @@
 			if (container_id.indexOf('#') == -1) {
 				container_id = '#' + container_id;
 			}
+
 			var container = $(container_id);
 			container.empty(); // clear all children
 	        $(".oemath-svg-vertical input").on("input", function () {});
@@ -284,6 +325,45 @@
 		    sync_input(practice.prob);
 		}
 
+
+		function process_categories(cats)
+		{
+			var opts = '';
+			for (var i=0; i<cats.length; i++) {
+				var cat = cats[i];
+				opts += '<option value="'+cat.cid+'">'+ cat.cid+'&nbsp;-&nbsp;'+cat.title+'</option>';
+			}
+			 
+			$('#prob-cid').empty();
+			$('#prob-cid').append(opts);
+		}
+
+		
+		function on_grade_change(grade)
+		{
+		    $.ajax({
+		        type: "get",
+		        url: "/api/category",
+		        dataType: "json",
+		        async: false,
+		        data: { grade: grade },
+		        success: function (data, textStatus, jqXHR) {
+			        if (data.result == "success") {
+						process_categories(data.categories);
+			        }
+			        else {
+			        	$("#prob-info").text("error:" + data.error);
+			        }
+		        },
+		        failure: function (jqXHR, textStatus, errorThrown) {
+		            $("#prob-info").text("failure:" + errorThrown);
+		        },
+		        error: function (jqXHR, textStatus, errorThrown) {
+		            $("#prob-info").text("error:" + url);
+		        },
+		    });
+		}
+		
 
 		$(function() {
 	        $("#prob-type").on("keydown", function (e) {
@@ -295,6 +375,15 @@
 		            }
 	        	}
 	        	return false; // do NOT pass down the event
+	        });
+
+	        $("#prob-pid").val(DEFAULT_PID);
+	        
+	        $("#prob-grade").val(DEFAULT_GRADE);
+	        on_grade_change($("#prob-grade").val());
+
+	        $("#prob-grade").on("input", function () {
+	            on_grade_change($(this).val());
 	        });
 		});
 		
