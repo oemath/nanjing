@@ -101,7 +101,12 @@
 	    </div>
 	    <div class="button-left">
 	        <label>Type:</label>
-	        <input type="text" class="form-control width-200" id="prob-type"></input>
+			<select id="prob-type" class="form-control width-200">
+		        <option value="0">0&nbsp;-&nbsp;Normal</option>
+		        <option value="1">1&nbsp;-&nbsp;Choice</option>
+		        <option value="2">2&nbsp;-&nbsp;Multi Answer</option>
+		        <option value="3">3&nbsp;-&nbsp;Single Answer</option>
+			</select>
 	    </div>
 	    <div class="button-left">
 	        <label>Level:</label>
@@ -166,7 +171,7 @@
 
 	<script>
 
-		var DEFAULT_PID = 79;
+		var DEFAULT_PID = 126;
 		var DEFAULT_GRADE = 3;
 
 		var type_str = ["0 - Normal", "1 - Choice", "2 - Multi Answer", "3 - Single Answer" ]; 
@@ -256,7 +261,7 @@
 			practice.grade = raw_prob.grade;
 			practice.cid = raw_prob.cid;
 			practice.index = 0;
-			practice.prob = process_prob(raw_prob);
+			practice.prob = process_prob(raw_prob, 1); // 1: prob_index
 			refresh_prob('#preview-container', practice);
 		}
 		
@@ -270,16 +275,13 @@
 			$('#prob-pid').val(data.pid);
 			$('#prob-cid').val(data.cid);
 			$('#prob-level').val(data.level);
-			$('#prob-type').val(type_str[data.type]);
+			$('#prob-type').val(data.type);
 			$('#prob-desc').val(data.problem);
 			$('#prob-param').val(data.param);
 			$('#prob-ans').val(data.answer);
 
 			refresh_input_to_preview();
 			
-			$(".oemath-input-catch").on("input", function () {
-				refresh_input_to_preview();
-		    });
 /*			$('#oemathid-param-list').empty();
 			$('#oemathid-param-list').append('<button type="button" onclick="onclickRawParam()" class="btn oemath-btn-color">Raw</button>');
 			var paramList = param.split('$$');
@@ -296,7 +298,7 @@
 		function gather_prob_data() {
 			var prob = {};
 
-			prob.type = $('#prob-type').val().charAt(0);
+			prob.type = $('#prob-type').val();
 			if (!prob.type) {
 				prob.type = PROB_TYPE_NORMAL;
 			}
@@ -368,17 +370,6 @@
 		
 
 		$(function() {
-	        $("#prob-type").on("keydown", function (e) {
-	        	var ch = e.keyCode || e.which;
-	        	if (ch) {
-		        	ch -= 48;
-		            if (0 <= ch && ch <= 3) {
-			            $(this).val(type_str[ch]);
-		            }
-	        	}
-	        	return false; // do NOT pass down the event
-	        });
-
 	        $("#prob-pid").val(DEFAULT_PID);
 	        
 	        $("#prob-grade").val(DEFAULT_GRADE);
@@ -387,6 +378,10 @@
 	        $("#prob-grade").on("input", function () {
 	            on_grade_change($(this).val());
 	        });
+
+	        $(".oemath-input-catch").on("input", function () {
+				refresh_input_to_preview();
+		    });
 		});
 		
 	</script>
