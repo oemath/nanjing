@@ -27,7 +27,7 @@ import org.codehaus.jettison.json.JSONObject;
 public class UserManagement {
 
     final static int USER_GUEST = 0;
-    final static int USER_UNPAID = 1;
+    final static int USER_REGISTERED = 1;
     final static int USER_PAID = 2;
     final static int USER_MAX = USER_PAID;
     
@@ -188,7 +188,7 @@ public class UserManagement {
     public static int getCurrentUserLevel(HttpServletRequest request) {
     	User user = getCurrentUser(request);
     	if (user != null) {
-    		return user.isPaymentValid() ? USER_PAID : USER_UNPAID;
+    		return user.isPaymentValid() ? USER_PAID : USER_REGISTERED;
     	}
     	else {
     		return USER_GUEST;
@@ -202,7 +202,7 @@ public class UserManagement {
     }
 
     
-    private static User getCurrentUser(HttpServletRequest request) {
+    public static User getCurrentUser(HttpServletRequest request) {
     	HttpSession session = request.getSession();
     	
         User user = null;

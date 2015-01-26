@@ -14,31 +14,36 @@ public class Database {
 
 	private static boolean JAVA_EVAL = true;
 	
-	private static String[] tblPrefix = { "guest_", "unpaid_", "paid_" };
+	private static String[] tblPrefix = { "guest_", "reg_", "paid_" };
 	private static int PRACTICE_COUNT = 5;
 	
+    ////////////////////////////////////////
+    ////////// user 
+    ////////////////////////////////////////
+    
     public static boolean createUser(User user) { 
         try {
             DBConnect dbConn = new DBConnect();
-            PreparedStatement pstmt = dbConn.prepareStatement("insert into user values(?,?,?,?,?,?,?,?,?,?,?,?)");
-            pstmt.setString(1, user.userName);
+            PreparedStatement pstmt = dbConn.prepareStatement("insert into user values(?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            pstmt.setInt(1, 0); // uid
+            pstmt.setString(2, user.userName);
             if (user.picture == null || user.picture.length == 0) {
-                pstmt.setNull(2,  Types.BLOB);
+                pstmt.setNull(3,  Types.BLOB);
             }
             else {
-                pstmt.setBlob(2, new ByteArrayInputStream(user.picture));
+                pstmt.setBlob(3, new ByteArrayInputStream(user.picture));
             }
-            pstmt.setString(3, user.name);
-            pstmt.setString(4, user.email);
-            pstmt.setString(5, user.salt);
-            pstmt.setString(6, user.password);
-            pstmt.setInt(7, 0);
-            pstmt.setNull(8, Types.DATE);
-            pstmt.setNull(9, Types.VARCHAR);
-            pstmt.setNull(10, Types.DATE);
+            pstmt.setString(4, user.name);
+            pstmt.setString(5, user.email);
+            pstmt.setString(6, user.salt);
+            pstmt.setString(7, user.password);
+            pstmt.setInt(8, 0);
+            pstmt.setNull(9, Types.DATE);
+            pstmt.setNull(10, Types.VARCHAR);
+            pstmt.setNull(11, Types.DATE);
             Date currentDate = new Date(System.currentTimeMillis()); 
-            pstmt.setDate(11, currentDate);
             pstmt.setDate(12, currentDate);
+            pstmt.setDate(13, currentDate);
             pstmt.executeUpdate();
             return true;
         }
@@ -47,20 +52,89 @@ public class Database {
         }
     }
 
-    //level: 0 - guest ; 1 - non-paid; 2 - paid
-    public static ArrayList<Integer> getProblemIdsFromGradeCategory(int grade, int cat, int level) {
-        if (level < 0 || level > tblPrefix.length) {
-        	return null;
+
+    public static void saveHistory(int uid, int cid, int start, ArrayList<Integer> failure)
+    {
+    	String failureStr;
+    	if (!Utils.isEmpty(failure)) {
+        	StringBuffer sb = new StringBuffer();
+        	sb.append(failure.get(0));
+        	for (int i=1; i<failure.size(); i++) {
+        		sb.append(',');
+        		sb.append(failure.get(i));
+        	}
+        	failureStr = sb.toString();
+    	}
+    	else {
+    		failureStr = "";
+    	}
+    	
+        String query = "update history set start="+start+",failure='"+failureStr+"' where uid="+uid+" and cid="+cid;
+        DBConnect conn = new DBConnect();
+        if (conn.executeUpdate(query) == 0) {
+        	try {
+	            PreparedStatement pstmt = conn.prepareStatement("insert into history values(?,?,?,?)");
+	            pstmt.setInt(1, uid);
+	            pstmt.setInt(2, cid);
+	            pstmt.setInt(3, start);
+	            pstmt.setString(4, failureStr);
+	            pstmt.executeUpdate();
+        	}
+        	catch (SQLException se) {
+        		
+        	}
         }
-        
+    }
+    
+    
+    public static History getHistory(User user, int cid)
+    {
+    	if (user == null) {
+    		return null;
+    	}
+    	
         DBConnect dbConn = new DBConnect();
-        String query = "select pid from "+tblPrefix[level] + grade +" where cid=" + cat + " limit " + PRACTICE_COUNT; 
+        String query = "select start, failure from history where uid=" + user.uid + " and cid=" + cid; 
         
         ResultSet rs = dbConn.execute(query);
-        ArrayList<Integer> pidList = null;
         
         if (rs != null) {
-            pidList = new ArrayList<Integer>();
+        	History hist = new History();
+            try {
+                while (rs.next()) {
+                	hist.start = rs.getInt("start");
+                	String failure = rs.getString("failure");
+                	String[] failureList = failure.split(",");
+                	if (failureList.length > 0) {
+                		hist.failureList = new ArrayList<Integer>();
+	                	for (String f : failureList) {
+	                		try {
+	                			hist.failureList.add(Integer.parseInt(f));
+	                		}
+	                		catch (NumberFormatException nfe) {
+	                			break;
+	                		}
+	                	}
+                	}
+                	return hist;
+                }
+            }
+            catch (SQLException sqlex) {
+            }
+        }       
+
+        return null;
+    }
+    
+
+    public static ArrayList<Integer> getProblemIds(String tbl, int cid, int start, int limit) {
+        DBConnect dbConn = new DBConnect();
+        String query = "select pid from "+tbl+" where cid=" + cid + " limit " + limit; 
+        
+        ResultSet rs = dbConn.execute(query);
+        ArrayList<Integer> pidList = new ArrayList<Integer>();
+        
+        if (rs != null) {
             try {
                 while (rs.next()) {
                     pidList.add(rs.getInt("pid"));
@@ -72,13 +146,35 @@ public class Database {
 
         return pidList;
     }
+    
+    
+    public static ArrayList<Integer> getProblemIdsFromGradeCategory(int grade, int cid, User user) {
+    	History hist = getHistory(user, cid);
+    	ArrayList<Integer> pidList = new ArrayList<Integer>();
 
-    
-    
-    
-    
-    ////////////////////////////////////////////
-    ////////////////////////////////////////////
+    	int start = 0;
+    	int limit = PRACTICE_COUNT;
+    	if (hist != null && !Utils.isEmpty(hist.failureList)) {
+    		start = hist.start;
+    		pidList.addAll(hist.failureList);
+    		limit -= hist.failureList.size();
+    	}
+
+        int level = User.getLevel(user);
+    	String tbl = tblPrefix[level] + grade;
+    	
+    	ArrayList<Integer> list1 = getProblemIds(tbl, cid, start, limit);
+    	pidList.addAll(list1);
+    	
+    	limit = PRACTICE_COUNT - pidList.size();
+    	if (limit > 0) {
+    		list1 = getProblemIds(tbl, cid, 0, limit);
+        	pidList.addAll(list1);
+    	}
+
+        return pidList;
+    }
+
     
     public static User lookupByUsernameAndToken(String userName, String token) {
 
@@ -131,6 +227,10 @@ public class Database {
     }
     
 
+    ////////////////////////////////////////
+    ////////// practice 
+    ////////////////////////////////////////
+    
     public static ArrayList<Integer> getProblemIdsFromGradeCategorySample(int grade, int cid, boolean sample) {
         DBConnect dbConn = new DBConnect();
         
@@ -182,13 +282,14 @@ public class Database {
         return hintList;
     }
     
-    public static Prob getProbFromGradePid(int grade, int cid, int userLevel, int pid) {
-    	if (userLevel < 0 || userLevel > UserManagement.USER_MAX || grade < 0 || cid < 0 || pid < 0) {
+
+    public static Prob getProbFromGradePid(int grade, int cid, User user, int pid) {
+    	if (grade < 0 || cid < 0 || pid < 0) {
     		return null;
     	}
     	
         DBConnect dbConn = new DBConnect();
-        ResultSet rs = dbConn.execute("select pid, problem, param, answer, hint, type from "+tblPrefix[userLevel]+ grade +" where pid=" + pid);
+        ResultSet rs = dbConn.execute("select pid, problem, param, answer, hint, type from "+tblPrefix[User.getLevel(user)]+ grade +" where pid=" + pid);
         
         if (rs == null) {
             return null;

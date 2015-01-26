@@ -47,6 +47,7 @@
 		var grade = <%=request.getParameter("grade") %>;
 		if (grade != null) {
 			get_category(grade);
+			$('#oemathid-grade-details-container > h1').text('Category - Grade '+grade);
 		}
 		else {
 			window.location.href = "/index.jsp";

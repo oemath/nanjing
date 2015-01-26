@@ -17,7 +17,7 @@
 		<jsp:include page="/includes/menu.jsp"/>
 
 		<div id="oemathid-practice-header" class="container oemath-children-left">
-			<h1 class="oemath-color">Practice - Grade 3</h1>
+			<h1 class="oemath-color"></h1>
 			<div class="text-center oemath-fullwidth">
 				<div id="oemathid-review-btns" class="btn-group" role="group" aria-label="...">
 					<!-- group btns will be append in $() -->
@@ -41,7 +41,9 @@
 		$(function() {
 			var grade = <%=request.getParameter("grade") %>;
 			var cid = <%=request.getParameter("cid") %>;
-			btn_group_curr = -1;
+//			btn_group_curr = -1;
+
+			$('#oemathid-practice-header > h1').text('Practice - Grade '+grade);
 			
 			if (grade != null && cid != null) {
 				show_first_prob(grade, cid);

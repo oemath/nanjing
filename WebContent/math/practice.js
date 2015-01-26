@@ -11,7 +11,7 @@ function makeStruct(names) {
 }
 
 
-function gcd(x, y) {
+function gcd_(x, y) {
     while (y != 0) {
         var z = x % y;
         x = y;
@@ -19,6 +19,25 @@ function gcd(x, y) {
     }
     return x;
 }
+function gcd() {
+	var ret = arguments[0];
+	for (var i=1; i<arguments.length; i++) {
+		ret = gcd_(ret, arguments[i]);
+	}
+	return ret;
+}
+
+function lcm_(x, y) {
+	return x * y / gcd_(x, y);
+}
+function lcm() {
+	var ret = arguments[0];
+	for (var i=1; i<arguments.length; i++) {
+		ret = lcm_(ret, arguments[i]);
+	}
+	return ret;
+}
+
 
 function F(n) {
     var f = 1;
@@ -73,6 +92,8 @@ var count = 0;
 
 var prob_parsed;
 var prob_index = 0;
+var prob_report = []; // save history when finishing practice
+
 
 /*********************/
 
@@ -176,7 +197,8 @@ function onclickReviewBtn(btn_index) {
 }
 
 
-function onclickSubmitPractice(grade, cid, index) {
+function onclickSubmitPractice(grade, cid, index)
+{
 	var answer = check_answer();
 	if (answer == ANSWER_WRONG) { 
 		set_review_btn_color(index, BTN_WRONG);
@@ -189,11 +211,41 @@ function onclickSubmitPractice(grade, cid, index) {
 	else {
 		set_review_btn_color(index, BTN_CORRECT);
 		request_practice(index + 1);
+		prob_report[index] = 1;
 	}
 }
 
 
-function onclickSkipPractice(grade, cid, index) {
+function onclickFinishPractice(grade, cid)
+{
+    $.ajax({
+        type: "post",
+        url: "/api/practice/report",
+        data: { grade: grade, cid : cid, report: prob_report.join() },
+        dataType: "json",
+        async: false,
+        success: function (practice, textStatus, jqXHR) {
+	        if (practice.result == 'success') {
+	        	count = practice.count;
+		    	if (practice.prob != null) {
+			    	practice.grade = grade;
+			    	practice.cid = cid;
+			    	practice.index = index;
+			    	
+			    	handler(practice);
+		    	}
+		    }
+	        else {
+		    }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+        },
+    });
+}
+
+
+function onclickSkipPractice(grade, cid, index)
+{
 	var next_index = index + 1;
 
 	var prob = prob_parsed[index];
@@ -249,7 +301,6 @@ function onclickShowAnswerPractice(index) {
 	}
 }
 
-
 function show_first_prob(g, c) {
 	grade = g;
 	cid = c;
@@ -266,6 +317,9 @@ function show_first_prob(g, c) {
 	$('#oemathid-review-btns').append(btn_html);
 
 	set_active(0);
+	for (var i=0; i<count; i++) {
+		prob_report.push(0);
+	}
 	
 	return count;
 }
@@ -441,9 +495,9 @@ function get_prob_html(practice) {
 					'<div class="form-inline">';
 	
 	if (prob.type == PROB_TYPE_NORMAL) {
-		prob_html += 	'<h1 class="oemath-answer-text">Answer('+eval_wrapper(prob.ans)+')</h1>'+
+		prob_html += 	'<h1 class="oemath-answer-text">Answer</h1>'+
 						'<div class="form-inline">'+
-						'<input id="oemathid-answer-input" type="text" class="form-control oemath-answer-input"></input>';
+						'<input id="oemathid-answer-input" type="text" class="form-control oemath-answer-input" answer="'+eval_wrapper(prob.ans)+'"></input>';
 	}
 	else {
 		prob_html += '<div class="form-inline">';
@@ -451,7 +505,8 @@ function get_prob_html(practice) {
 		
 	var param = ''+practice.grade+','+practice.cid+','+practice.index;
 	prob_html += 		'<button id="oemathid-answer-submit" class="btn oemath-btn" style="margin-left:5px" onclick="onclickSubmitPractice('+param+')">Submit</button>'+
-						'<button class="btn oemath-btn pull-right" onclick="onclickSkipPractice('+param+')">Skip</button>'+
+						'<button class="btn oemath-btn pull-right" style="margin-left:5px" onclick="onclickSkipPractice('+param+')">Skip</button>'+
+						'<button class="btn oemath-btn pull-right" onclick="onclickFinishPractice('+practice.grade+','+practice.cid+')">Finish</button>'+
 					'</div>'+
 				'</div>';
 
@@ -488,6 +543,10 @@ function parse_param_map(parameter) {
 	    }
     }
 
+    if (!val_map["<ans>"]) {
+    	val_map["<ans>"] = '0';
+    }
+    
     return val_map;
 }
 
@@ -570,16 +629,16 @@ function replace_oemath_tags(prob, prob_index) {
     prob = prob.replace(/<\s*oemath-svg\(([^\)]+)\)\s*>/g, function (m, $1) {
         var prop = parse_prop_str($1, function(k,v) {
             if (k == 'width' || k == 'w') {
-                svg_width = eval(v);
+                svg_width = eval_wrapper(v);
             }
             else if (k == 'height' || k == 'h') {
-                svg_height = eval(v);
+                svg_height = eval_wrapper(v);
             }
             else if (k == 'tx' || k == 'translateX' ) {
-                translateX = eval(v);
+                translateX = eval_wrapper(v);
             }
             else if (k == 'ty' || k == 'translateY' ) {
-                translateY = eval(v);
+                translateY = eval_wrapper(v);
             }
             return false;
         });
@@ -590,7 +649,7 @@ function replace_oemath_tags(prob, prob_index) {
 
     // 'def_circle C#=(200,200,100)' +: define a circle named C#, cx=200, cy=200, radius=100
     prob = prob.replace(/def_circle\s+([^=\s]+)\s*=\s*\(\s*([^,\s\)]+)\s*,\s*([^,\s\)]+)\s*,\s*([^,\s\)]+)\s*\)/g, function(m, $1, $2, $3, $4) {
-        my_circles[$1] = { x:eval($2), y:eval($3), r:eval($4) };
+        my_circles[$1] = { x:eval_wrapper($2), y:eval_wrapper($3), r:eval_wrapper($4) };
         return "";
     });
 
@@ -790,7 +849,7 @@ Array.prototype.same = function (array) {
 
 //polar coordination to cart coordination
 function p2c(centerX, centerY, radius, angleInDegrees) {
-  centerX=eval(centerX); centerY=eval(centerY); radius=eval(radius); angleInDegrees=eval(angleInDegrees);
+  centerX=eval_wrapper(centerX); centerY=eval_wrapper(centerY); radius=eval_wrapper(radius); angleInDegrees=eval_wrapper(angleInDegrees);
 var angleInRadians = (360-angleInDegrees) * Math.PI / 180.0;
 
 return {
@@ -806,7 +865,7 @@ function parse_position(my_circles, str) {
   if (start == 0) {
       var xy = str.substring(start+1, end).split(',');
       if (xy.length == 2) {
-          return { x: eval(xy[0]), y: eval(xy[1]), p: false };
+          return { x: eval_wrapper(xy[0]), y: eval_wrapper(xy[1]), p: false };
       }
       else { // (cx,cy,radius,theta)
           var c = p2c(xy[0], xy[1], xy[2], xy[3]);
@@ -868,7 +927,7 @@ function get_prop(str, key, def_value) {
       str = str.trim();
       var vals = str.split('=');
       if (vals.length==2 && vals[0].trim() == key) {
-          try { val = eval(vals[1]); } catch(e) { }
+          try { val = eval_wrapper(vals[1]); } catch(e) { }
       }
   }
   return val;
@@ -935,7 +994,7 @@ function vertical(fml, hints, prob_index, input_numbers) {
 function replace_vertical(prob, prob_index, input_numbers) {
   var inputs = input_numbers;
   prob = prob.replace(/\s*<\s*oemath-vertical\s+\(([^\)]+)\)\s+\(([^\)]+)\)\s*>/g, function(m, $1, $2) {
-      var desc_inputs = vertical(eval($1), eval($2), prob_index, input_numbers);
+      var desc_inputs = vertical(eval_wrapper($1), eval_wrapper($2), prob_index, input_numbers);
       inputs = desc_inputs.inputs;
       return desc_inputs.desc;
   });
@@ -972,7 +1031,12 @@ function check_answer()
         	prob.check = ANSWER_INCOMPLETE;
         }
         else {
-        	prob.check = eval('('+answer_entered +')==('+ prob.ans+')') ? ANSWER_CORRECT : ANSWER_WRONG;
+        	try {
+        		prob.check = eval_wrapper('('+answer_entered +')==('+ prob.ans+')') ? ANSWER_CORRECT : ANSWER_WRONG;
+        	}
+        	catch (e) {
+        		prob.check = ANSWER_WRONG;
+        	}
         }
     }
     else if (prob.type == PROB_TYPE_CHOICE) {
@@ -1004,7 +1068,7 @@ function check_answer()
 	        answer_descript += prob.ans;
 	
 	        try {
-	        	prob.check = eval(answer_descript) ? ANSWER_CORRECT : ANSWER_WRONG;
+	        	prob.check = eval_wrapper(answer_descript) ? ANSWER_CORRECT : ANSWER_WRONG;
 	        }
 	        catch (e) {
 	        	prob.check = ANSWER_WRONG;
@@ -1014,7 +1078,7 @@ function check_answer()
     else if (prob.type == PROB_TYPE_SINGLE_ANSWER) {
     	prob.entered = [];
     	prob.check = ANSWER_CORRECT;
-        var expected_answer = eval(prob.ans); // prob.ans e.g [4,5,9,4,1,0]
+        var expected_answer = eval_wrapper(prob.ans); // prob.ans e.g [4,5,9,4,1,0]
         for (var i = 0; i < prob.inputs; i++) {
             var input_number = $("#oemath-input-field-" +prob_index+ '-' +i).val().trim();
             prob.entered.push(input_number);

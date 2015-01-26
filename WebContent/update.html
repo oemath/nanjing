@@ -80,12 +80,16 @@
 			width: 100px;
 		}
 
+		.width-120 {
+			width: 120px;
+		}
+
 		.width-200 {
 			width: 200px;
 		}
 
-		.width-600 {
-			width: 600px;
+		.width-500 {
+			width: 500px;
 		}
 
     </style>
@@ -114,12 +118,20 @@
 	    </div>
 	    
 	    <div class="button-right">
+	        <label>User Level:</label>
+			<select id="prob-user" class="form-control width-120">
+		        <option value="0">Guest</option>
+		        <option value="1">Registered</option>
+		        <option value="2">Paid</option>
+			</select>
+	    </div>
+	    <div class="button-right">
 	        <label>Grade:</label>
 	        <input type="number" class="form-control width-100" id="prob-grade"></input>
 	    </div>
 	    <div class="button-right">
 	        <label>Category:</label>
-			<select id="prob-cid" class="form-control width-600">
+			<select id="prob-cid" class="form-control width-500">
 			</select>
 	    </div>
 	    <div style="clear:both"></div>
@@ -173,25 +185,20 @@
 
 		var DEFAULT_PID = 126;
 		var DEFAULT_GRADE = 3;
-
+		var USER_GUEST = 0;
+		var USER_REGISTERED = 1;
+		var USER_PAID = 2;
+		
 		var type_str = ["0 - Normal", "1 - Choice", "2 - Multi Answer", "3 - Single Answer" ]; 
 		
 		function retrieve_and_show(action) {
-			var pid = $('#prob-pid').val().trim();
-			var grade = $('#prob-grade').val().trim(); 
-			if (pid == '') pid = DEFAULT_PID;
-			if (grade == '') {
-				grade = DEFAULT_GRADE;
-				$('#prob-grade').val(grade);
-			}
-			
-			var url = "/api/internal";
+			var prob = gather_prob_data();
 			
 		    $.ajax({
 		        type: "get",
-		        url: url,
+		        url: "/api/internal",
 		        dataType: "json",
-		        data: { grade: grade, pid: pid, action: action, level: 2 },
+		        data: { grade: prob.grade, pid: prob.pid, action: action, user: prob.user },
 		        success: function (data, textStatus, jqXHR) {
 		            handleGet(data);
 		            $("#prob-info").text("");
@@ -200,7 +207,7 @@
 		            $("#prob-info").text("failure:" + errorThrown);
 		        },
 		        error: function (jqXHR, textStatus, errorThrown) {
-		            $("#prob-info").text("error:" + url);
+		            $("#prob-info").text("error: /api/internal");
 		        },
 		    });
 		}
@@ -235,7 +242,8 @@
 			        param: prob.param,
 			        prob: prob.desc,
 			        ans: prob.ans,
-			        hint: prob.hint },
+			        hint: prob.hint,
+			        user: prob.user, },
 		        success: function (data, textStatus, jqXHR) {
 		            if (data.result == "success") {
 			            prob.pid = data.pid;
@@ -298,10 +306,7 @@
 		function gather_prob_data() {
 			var prob = {};
 
-			prob.type = $('#prob-type').val();
-			if (!prob.type) {
-				prob.type = PROB_TYPE_NORMAL;
-			}
+			prob.type = $('#prob-type').val();  if (!prob.type) { prob.type = PROB_TYPE_NORMAL; $('#prob-type').val(prob.type); }
 			prob.param = $('#prob-param').val();
 		    prob.desc = $('#prob-desc').val();
 		    prob.ans = $('#prob-ans').val();
@@ -309,7 +314,8 @@
 		    prob.grade = $('#prob-grade').val();
 		    prob.pid = $('#prob-pid').val(); if (!prob.pid) { prob.pid = 0; $('#prob-pid').val(prob.pid); }
 		    prob.cid = $('#prob-cid').val();
-		    prob.level = $('#prob-level').val(); if (!prob.level) { prob.level = 1; $('#prob-level').val(prob.level) }
+		    prob.level = $('#prob-level').val(); if (!prob.level) { prob.level = 1; $('#prob-level').val(prob.level); }
+		    prob.user = $('#prob-user').val(); if (!prob.user) { prob.level = USER_REGISTERED; $('#prob-user').val(prob.user); }
 
 		    return prob;
 		}
@@ -325,6 +331,7 @@
 	        $(".oemath-svg-vertical input").on("input", function () {});
 
 		    container.append(get_prob_html(practice));
+		    $('h1.oemath-answer-text').text('Answer('+eval_wrapper(practice.prob.ans)+')');
 
 		    sync_input(practice.prob);
 		}

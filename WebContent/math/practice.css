@@ -9,7 +9,7 @@
 
 
 .oemath-problem-text {
-	color: rgb(80,224,50);
+	color: lightgreen;
 }
 
 .oemath-problem-area {
@@ -18,7 +18,7 @@
 }
 
 .oemath-answer-text {
-	color: rgb(80,224,50);
+	color: lightgreen;
 }
 
 .oemath-answer-input {

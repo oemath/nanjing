@@ -23,7 +23,7 @@ public class Practice {
 	private ArrayList<Integer> buildPidsListIfNecessary(HttpServletRequest request,
 									int grade,
 									int cid,
-									int userLevel,
+									User user,
 									boolean new_session)
 	{
 		ArrayList<Integer> pidsList = null;
@@ -36,7 +36,7 @@ public class Practice {
 		}
 		
         if (pidsList == null) {
-        	pidsList = Database.getProblemIdsFromGradeCategory(grade, cid, userLevel);
+        	pidsList = Database.getProblemIdsFromGradeCategory(grade, cid, user);
         	session.setAttribute(session_key, pidsList);
         }
 		
@@ -56,15 +56,15 @@ public class Practice {
         
         String retString = "";
         try {
-            int userLevel = UserManagement.getCurrentUserLevel(request);
-            ArrayList<Integer> pidsList = buildPidsListIfNecessary(request, grade, cid, userLevel, new_session);
+            User user = UserManagement.getCurrentUser(request);
+            ArrayList<Integer> pidsList = buildPidsListIfNecessary(request, grade, cid, user, new_session);
 
             JSONObject practice = new JSONObject();
             practice.put("result", "success");
             practice.put("count", pidsList != null ? pidsList.size() : 0);
             
             if (!Utils.isEmpty(pidsList) &&  index < pidsList.size()) {
-                Prob prob = Database.getProbFromGradePid(grade, cid, userLevel, pidsList.get(index));
+                Prob prob = Database.getProbFromGradePid(grade, cid, user, pidsList.get(index));
 
                 JSONObject problem = new JSONObject();
                 problem.put("pid", prob.pid);
@@ -95,6 +95,66 @@ public class Practice {
         return Response
                 .status(200)
                 .entity(retString)
+                .build();
+    }
+
+
+    @POST
+    @Path("/report")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response reportFailure(
+            @Context HttpServletRequest request, 
+            @FormParam("grade") int grade,
+            @FormParam("cid") int cid,
+            @FormParam("report") String report)
+    {
+    	String ret = "result:failure";
+    	
+    	do {
+	        User user = UserManagement.getCurrentUser(request);
+	        if (user == null) {
+	        	break;
+	        }
+
+	        HttpSession session = request.getSession(false);
+	        if (session == null) {
+	        	break;
+	        }
+	        
+	        String session_key = Session.SESSION_ATTRIBUTE_PRACTICE_PIDS+"-"+grade+"-"+cid;
+	        @SuppressWarnings("unchecked")
+			ArrayList<Integer> pidsList = (ArrayList<Integer>)session.getAttribute(session_key);
+			
+	        if (pidsList == null) {
+	        	break;
+	        }
+	
+            String[] fails = report.split(",");
+            if (fails == null || fails.length != pidsList.size()) {
+            	break;
+            }
+            
+            ArrayList<Integer> failure = new ArrayList<Integer>();
+        	int lastPid = 0;
+        	for (int i=0; i<fails.length; i++) {
+        		int pid = pidsList.get(i);
+        		if (lastPid < pid) {
+        			lastPid = pid;
+        		}
+        		
+        		if (!fails[i].equals("0")) { // 0 means correct in report
+        			failure.add(pid);
+        		}
+        	}
+
+        	Database.saveHistory(user.uid, cid, lastPid+1, failure);
+        	ret = "result:success";
+        	
+    	} while (false);        
+
+        return Response
+                .status(200)
+                .entity(ret)
                 .build();
     }
 }

@@ -28,14 +28,14 @@ public class InternalAccess {
             @QueryParam("grade") int grade,
             @QueryParam("pid") int pid,
             @QueryParam("action") String action,
-            @QueryParam("level") int userLevel)
+            @QueryParam("user") int user)
     {
 
         String retString = "Error";
         
         try {
             JSONObject problem = new JSONObject();
-            Prob prob = Database.getNextProbFromGradePid(grade, pid, action, userLevel);
+            Prob prob = Database.getNextProbFromGradePid(grade, pid, action, user);
             if (prob != null) {
 	            problem.put("count", 1);
 	            problem.put("pid", prob.pid);
@@ -83,10 +83,11 @@ public class InternalAccess {
             @QueryParam("prob") String prob,
             @QueryParam("param") String param,
             @QueryParam("ans") String ans,
-            @QueryParam("hint") String hint)
+            @QueryParam("hint") String hint,
+            @QueryParam("user") int user)
     {
     	try {
-    		pid = Database.saveProb(grade, pid, type, cid, level, prob, param, ans, hint, 2); // 2: paid user
+    		pid = Database.saveProb(grade, pid, type, cid, level, prob, param, ans, hint, user); // 2: paid user
     	}
     	catch (Exception e) {
     	}
