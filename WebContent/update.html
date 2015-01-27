@@ -105,7 +105,7 @@
 	    </div>
 	    <div class="button-left">
 	        <label>Type:</label>
-			<select id="prob-type" class="form-control width-200">
+			<select id="prob-type" class="form-control width-200 oemath-input-catch">
 		        <option value="0">0&nbsp;-&nbsp;Normal</option>
 		        <option value="1">1&nbsp;-&nbsp;Choice</option>
 		        <option value="2">2&nbsp;-&nbsp;Multi Answer</option>
@@ -183,7 +183,7 @@
 
 	<script>
 
-		var DEFAULT_PID = 126;
+		var DEFAULT_PID = 11;
 		var DEFAULT_GRADE = 3;
 		var USER_GUEST = 0;
 		var USER_REGISTERED = 1;
@@ -332,6 +332,9 @@
 
 		    container.append(get_prob_html(practice));
 		    $('h1.oemath-answer-text').text('Answer('+eval_wrapper(practice.prob.ans)+')');
+		    $('.oemath-problem-area input').val(function(id,str) {
+		    	return $(this).attr('hint');
+		    });
 
 		    sync_input(practice.prob);
 		}

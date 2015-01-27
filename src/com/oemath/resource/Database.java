@@ -15,7 +15,12 @@ public class Database {
 	private static boolean JAVA_EVAL = true;
 	
 	private static String[] tblPrefix = { "guest_", "reg_", "paid_" };
+	private static String[] tblHistory = { "hist_reg", "hist_paid" };
 	private static int PRACTICE_COUNT = 5;
+	
+	private static String getHistTable(int level) {
+		return tblHistory[level-1];
+	}
 	
     ////////////////////////////////////////
     ////////// user 
@@ -53,7 +58,7 @@ public class Database {
     }
 
 
-    public static void saveHistory(int uid, int cid, int start, ArrayList<Integer> failure)
+    public static void saveHistory(User user, int cid, int start, ArrayList<Integer> failure)
     {
     	String failureStr;
     	if (!Utils.isEmpty(failure)) {
@@ -69,12 +74,13 @@ public class Database {
     		failureStr = "";
     	}
     	
-        String query = "update history set start="+start+",failure='"+failureStr+"' where uid="+uid+" and cid="+cid;
+    	String tbl = getHistTable(User.getLevel(user));
+        String query = "update "+tbl+" set start="+start+",failure='"+failureStr+"' where uid="+user.uid+" and cid="+cid;
         DBConnect conn = new DBConnect();
         if (conn.executeUpdate(query) == 0) {
         	try {
-	            PreparedStatement pstmt = conn.prepareStatement("insert into history values(?,?,?,?)");
-	            pstmt.setInt(1, uid);
+	            PreparedStatement pstmt = conn.prepareStatement("insert into "+tbl+" values(?,?,?,?)");
+	            pstmt.setInt(1, user.uid);
 	            pstmt.setInt(2, cid);
 	            pstmt.setInt(3, start);
 	            pstmt.setString(4, failureStr);
@@ -93,8 +99,9 @@ public class Database {
     		return null;
     	}
     	
+    	String tbl = getHistTable(User.getLevel(user));
         DBConnect dbConn = new DBConnect();
-        String query = "select start, failure from history where uid=" + user.uid + " and cid=" + cid; 
+        String query = "select start, failure from "+tbl+" where uid=" + user.uid + " and cid=" + cid; 
         
         ResultSet rs = dbConn.execute(query);
         
@@ -127,9 +134,9 @@ public class Database {
     }
     
 
-    public static ArrayList<Integer> getProblemIds(String tbl, int cid, int start, int limit) {
+    private static ArrayList<Integer> getProblemIds(String tbl, int cid, int start, int limit) {
         DBConnect dbConn = new DBConnect();
-        String query = "select pid from "+tbl+" where cid=" + cid + " limit " + limit; 
+        String query = "select pid from "+tbl+" where cid=" + cid + " and pid>="+start+" order by pid limit " + limit; 
         
         ResultSet rs = dbConn.execute(query);
         ArrayList<Integer> pidList = new ArrayList<Integer>();
@@ -339,6 +346,7 @@ public class Database {
         try {
             if (rs != null && rs.first()) {
                 user = new User();
+                user.uid = rs.getInt("uid");
                 user.userName = rs.getString("user_name");
                 user.name = rs.getString("name");
                 Blob pictureBlob = rs.getBlob("picture");

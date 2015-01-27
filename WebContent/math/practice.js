@@ -92,7 +92,12 @@ var count = 0;
 
 var prob_parsed;
 var prob_index = 0;
+
+// 0-skip (initial value); 1 - wrong; 2 - correct
 var prob_report = []; // save history when finishing practice
+var REPORT_SKIP = 0;
+var REPORT_WRONG = 1;
+var REPORT_CORRECT = 2;
 
 
 /*********************/
@@ -200,7 +205,10 @@ function onclickReviewBtn(btn_index) {
 function onclickSubmitPractice(grade, cid, index)
 {
 	var answer = check_answer();
-	if (answer == ANSWER_WRONG) { 
+	if (answer == ANSWER_WRONG) {
+		if (prob_report[index] == REPORT_SKIP) {
+			prob_report[index] = REPORT_WRONG;
+		}
 		set_review_btn_color(index, BTN_WRONG);
 		request_practice(index + 1);
 	}
@@ -209,9 +217,11 @@ function onclickSubmitPractice(grade, cid, index)
 		$('#oemath-check-answer-modal').modal('show');
 	}
 	else {
+		if (prob_report[index] == REPORT_SKIP) {
+			prob_report[index] = REPORT_CORRECT;
+		}
 		set_review_btn_color(index, BTN_CORRECT);
 		request_practice(index + 1);
-		prob_report[index] = 1;
 	}
 }
 
@@ -318,7 +328,7 @@ function show_first_prob(g, c) {
 
 	set_active(0);
 	for (var i=0; i<count; i++) {
-		prob_report.push(0);
+		prob_report.push(REPORT_SKIP);
 	}
 	
 	return count;

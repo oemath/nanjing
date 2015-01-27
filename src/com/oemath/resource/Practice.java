@@ -19,6 +19,11 @@ import org.codehaus.jettison.json.JSONObject;
 @Path("/practice")
 public class Practice {
 
+	// refer to enum in practice.js
+	private final static String REPORT_SKIP = "0";
+	private final static String REPORT_WRONG = "1";
+	private final static String REPORT_CORRECT = "2";
+	
 	@SuppressWarnings("unchecked")
 	private ArrayList<Integer> buildPidsListIfNecessary(HttpServletRequest request,
 									int grade,
@@ -38,6 +43,7 @@ public class Practice {
         if (pidsList == null) {
         	pidsList = Database.getProblemIdsFromGradeCategory(grade, cid, user);
         	session.setAttribute(session_key, pidsList);
+        	session.setAttribute(Session.SESSION_ATTRIBUTE_PRACTICE_LAST_PID, (Integer)pidsList.get(pidsList.size()-1));
         }
 		
         return pidsList;
@@ -65,6 +71,9 @@ public class Practice {
             
             if (!Utils.isEmpty(pidsList) &&  index < pidsList.size()) {
                 Prob prob = Database.getProbFromGradePid(grade, cid, user, pidsList.get(index));
+                if (prob == null) {
+                	// TODO: this pid is invalid!!!
+                }
 
                 JSONObject problem = new JSONObject();
                 problem.put("pid", prob.pid);
@@ -124,30 +133,28 @@ public class Practice {
 	        String session_key = Session.SESSION_ATTRIBUTE_PRACTICE_PIDS+"-"+grade+"-"+cid;
 	        @SuppressWarnings("unchecked")
 			ArrayList<Integer> pidsList = (ArrayList<Integer>)session.getAttribute(session_key);
-			
 	        if (pidsList == null) {
 	        	break;
 	        }
-	
+
+	        Integer lastPid = (Integer)session.getAttribute(Session.SESSION_ATTRIBUTE_PRACTICE_LAST_PID);
+	        if (lastPid == null) {
+	        	break;
+	        }
+	        
             String[] fails = report.split(",");
             if (fails == null || fails.length != pidsList.size()) {
             	break;
             }
             
             ArrayList<Integer> failure = new ArrayList<Integer>();
-        	int lastPid = 0;
         	for (int i=0; i<fails.length; i++) {
-        		int pid = pidsList.get(i);
-        		if (lastPid < pid) {
-        			lastPid = pid;
-        		}
-        		
-        		if (!fails[i].equals("0")) { // 0 means correct in report
-        			failure.add(pid);
+        		if (!fails[i].equals(REPORT_CORRECT)) {
+        			failure.add(pidsList.get(i));
         		}
         	}
 
-        	Database.saveHistory(user.uid, cid, lastPid+1, failure);
+        	Database.saveHistory(user, cid, lastPid+1, failure);
         	ret = "result:success";
         	
     	} while (false);        
