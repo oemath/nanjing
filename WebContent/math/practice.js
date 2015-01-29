@@ -92,9 +92,11 @@ var count = 0;
 
 var prob_parsed;
 var prob_index = 0;
+var PID_NONE = -1;
 
 // 0-skip (initial value); 1 - wrong; 2 - correct
-var prob_report = []; // save history when finishing practice
+var prob_report = []; // save history when finishing practice.  Only update for first submit
+var prob_final = []; // whether the final answer is correct
 var REPORT_SKIP = 0;
 var REPORT_WRONG = 1;
 var REPORT_CORRECT = 2;
@@ -202,6 +204,26 @@ function onclickReviewBtn(btn_index) {
 }
 
 
+function all_correct()
+{
+	onclickFinishPractice(grade, cid);
+	$('#owmthid-modal-practice-answer').text("Congratulations!  You've answered all question correctly!");
+	$('#oemath-practice-modal').modal('show');
+}
+
+
+function find_next_practice(index)
+{
+	for (var i=1; i<=count; i++) {
+		var next = (index + i) % count;
+		if (prob_final[next] != REPORT_CORRECT) {
+			return next;
+		}
+	}
+	return PID_NONE;
+}
+
+
 function onclickSubmitPractice(grade, cid, index)
 {
 	var answer = check_answer();
@@ -209,19 +231,29 @@ function onclickSubmitPractice(grade, cid, index)
 		if (prob_report[index] == REPORT_SKIP) {
 			prob_report[index] = REPORT_WRONG;
 		}
+		prob_final[index] = REPORT_WRONG;
 		set_review_btn_color(index, BTN_WRONG);
-		request_practice(index + 1);
 	}
 	else if (answer == ANSWER_INCOMPLETE) {
 		$('#owmthid-modal-practice-answer').text('Please enter your answer');
-		$('#oemath-check-answer-modal').modal('show');
+		$('#oemath-practice-modal').modal('show');
+		return;
 	}
 	else {
 		if (prob_report[index] == REPORT_SKIP) {
 			prob_report[index] = REPORT_CORRECT;
 		}
+		prob_final[index] = REPORT_CORRECT;
 		set_review_btn_color(index, BTN_CORRECT);
-		request_practice(index + 1);
+		
+	}
+
+	var index = find_next_practice(index);
+	if (index != PID_NONE) {
+		request_practice(index);
+	}
+	else {
+		all_correct();
 	}
 }
 
@@ -234,19 +266,7 @@ function onclickFinishPractice(grade, cid)
         data: { grade: grade, cid : cid, report: prob_report.join() },
         dataType: "json",
         async: false,
-        success: function (practice, textStatus, jqXHR) {
-	        if (practice.result == 'success') {
-	        	count = practice.count;
-		    	if (practice.prob != null) {
-			    	practice.grade = grade;
-			    	practice.cid = cid;
-			    	practice.index = index;
-			    	
-			    	handler(practice);
-		    	}
-		    }
-	        else {
-		    }
+        success: function (data, textStatus, jqXHR) {
         },
         error: function (jqXHR, textStatus, errorThrown) {
         },
@@ -256,8 +276,6 @@ function onclickFinishPractice(grade, cid)
 
 function onclickSkipPractice(grade, cid, index)
 {
-	var next_index = index + 1;
-
 	var prob = prob_parsed[index];
 	var prev_entered = prob.entered;
 	check_answer();
@@ -284,7 +302,13 @@ function onclickSkipPractice(grade, cid, index)
 		set_review_btn_color(index, BTN_SKIPPED);
     }
 	
-	request_practice(next_index);
+	var index = find_next_practice(index);
+	if (index != PID_NONE) {
+		request_practice(index);
+	}
+	else {
+		all_correct();
+	}
 }
 
 
@@ -329,6 +353,7 @@ function show_first_prob(g, c) {
 	set_active(0);
 	for (var i=0; i<count; i++) {
 		prob_report.push(REPORT_SKIP);
+		prob_final.push(REPORT_SKIP);
 	}
 	
 	return count;
@@ -539,11 +564,12 @@ function parse_param_map(parameter) {
 	        var val_name = params[i].substr(0, eql).trim();
 	        var val_value = params[i].substr(eql+1).trim();
 	
+	        val_value = replace_parameter(val_value, val_map).replace(/[\r\n]/g, '');
+
 	        var index_val = eval_rand_param(val_value, pick_index);
 	        pick_index= index_val.pick_index;
 	        var param_val = index_val.param_evaled;
 	
-	        param_val = replace_parameter(param_val, val_map).replace(/[\r\n]/g, '');
 	        try {
 	        	param_val = eval_wrapper(param_val);
 	        }
@@ -594,8 +620,8 @@ function generate_val(param, pick_index) {
 	if (param.indexOf('-') > 0) {
 	    // range
 	    var range = param.trim().split('-');
-	    var first = range[0] >> 0;
-	    var last = range[1] >> 0;
+	    var first = eval_wrapper(range[0]) >> 0;
+	    var last = eval_wrapper(range[1]) >> 0;
 	    var len = last - first + 1;
 	    return [pick_index, first + rand(len) >> 0];
 	}
@@ -1089,14 +1115,22 @@ function check_answer()
     	prob.entered = [];
     	prob.check = ANSWER_CORRECT;
         var expected_answer = eval_wrapper(prob.ans); // prob.ans e.g [4,5,9,4,1,0]
+        var is_array = typeof expected_answer.length !== 'undefined';
         for (var i = 0; i < prob.inputs; i++) {
             var input_number = $("#oemath-input-field-" +prob_index+ '-' +i).val().trim();
             prob.entered.push(input_number);
             if (input_number.length == 0) {
             	prob.check = ANSWER_INCOMPLETE;
             }
-            else if (input_number != expected_answer[i]) { // input_number length is either 0 or 1
-            	prob.check = ANSWER_WRONG;
+            else if (is_array) { // input_number length is either 0 or 1
+            	if (input_number != expected_answer[i]) {
+            		prob.check = ANSWER_WRONG;
+            	}
+            }
+            else { // for just one input, just set ans=3, instead of ans=[3], for simplicity
+            	if (input_number != expected_answer) {
+            		prob.check = ANSWER_WRONG;
+            	}
             }
         }
     }

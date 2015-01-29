@@ -12,7 +12,7 @@ import java.util.HashMap;
 
 public class Database {
 
-	private static boolean JAVA_EVAL = true;
+	private static boolean JAVA_EVAL = false;
 	
 	private static String[] tblPrefix = { "guest_", "reg_", "paid_" };
 	private static String[] tblHistory = { "hist_reg", "hist_paid" };

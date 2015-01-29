@@ -160,6 +160,7 @@
 	    </div>
 	
 		<p id="prob-info">&nbsp;</p>
+	    <button class="btn oemath-btn-color" style="margin-top:20px; margin-left: 10px; width:100px; float:right" onclick="onclickSaveAndNext()">Save&nbsp;&gt;&gt;</button>
 	    <button class="btn oemath-btn-color" style="margin-top:20px; margin-left: 10px; width:100px; float:right" onclick="onclickSave()">Save</button>
 	    <button class="btn oemath-btn-color" id="oemathid-btn-get" style="margin-top:20px; width:100px; float:right" onclick="onclickGet()">Get</button>
 	    <button class="btn oemath-btn-color" style="margin-top:20px; width:50px;" onclick="onclickPrev()">&lt;&lt;</button>
@@ -226,6 +227,13 @@
 			$('#prob-pid').val('')
 		}
 
+
+		function onclickSaveAndNext()
+		{
+			onclickSave();
+			onclickNext();
+		}
+		
 		function onclickSave() {
 			var prob = gather_prob_data();
 
@@ -233,6 +241,7 @@
 		        type: "get",
 		        url: "/api/internal/save",
 		        dataType: "json",
+		        async: false,
 		        data: { 
 			        grade: prob.grade, 
 			        pid: prob.pid, 

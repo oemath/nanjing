@@ -45,6 +45,7 @@
 .oemath-problem-desc {
 	text-align: justify;
 	line-height: 30px;
+	font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
 }
 
 .oemath-problem-image {
